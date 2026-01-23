@@ -32,9 +32,21 @@
 
 ---
 
-## 🆕 What's New in v2.9.19
+## 🆕 What's New in v2.9.21
 
-### Network Analytics Hostname Resolution
+### CNI/Tunnel Pass Rate Fix (v2.9.20)
+- **BUG FIX**: CNI pass rate now correctly shows ~74% instead of incorrect 50%
+- **Cause**: Was using `avg(tunnelState)` which is always 0.5 for CNI (degraded state)
+- **Fix**: Now calculates `count(resultStatus=ok) / total * 100` to match Cloudflare dashboard
+
+### Improved Prefix Constraint Messages (v2.9.21)
+- **Better UI**: Constraint messages now show Cloudflare attribution
+  - During cooldown: `⏱️ Can advertise in X.X min (Cloudflare API cooldown)`
+  - When ready: `✅ Ready to advertise`
+- **Fix**: Backend returns updated state in advertise/withdraw response
+- **Fix**: 500ms delay before refresh to allow API state propagation
+
+### Network Analytics Hostname Resolution (v2.9.19)
 - **NEW: Hostname Column** in Network Analytics table shows reverse DNS for source IPs
 - **NEW: Hostname in Detail Modal** — Double-click any event to see hostname in Source section
 - Parallel DNS resolution with caching (10 workers, 5s timeout)
@@ -486,7 +498,7 @@ flowchart TD
 | `cloudflare-webhook-receiver.py` | v1.9.0 | Webhook receiver - all events logged to DB | `cloudflare-webhook.service` |
 | `cloudflare-network-analytics-monitor.py` | v1.3.9 | GraphQL poller with GeoIP2 enrichment | `cloudflare-analytics-monitor.service` |
 | `cloudflare-autowithdraw.py` | v3.4 | **ONLY** service that performs BGP withdrawals | `cloudflare-autowithdraw.service` |
-| `dashboard/app.py` | v2.9.17 | Web dashboard with prefix management | `cloudflare-dashboard.service` |
+| `dashboard/app.py` | v2.9.21 | Web dashboard with prefix management | `cloudflare-dashboard.service` |
 
 ### Management Tools
 
@@ -690,7 +702,7 @@ cloudflare-magic-transit/
 │   ├── cloudflare-services-watchdog.sh         # HA watchdog (v1.2)
 │   └── db_manager.py                           # Database operations (v1.3.0)
 ├── dashboard/
-│   ├── app.py                                  # Flask web dashboard (v2.9.17)
+│   ├── app.py                                  # Flask web dashboard (v2.9.21)
 │   ├── templates/
 │   │   ├── dashboard.html                      # Main dashboard
 │   │   ├── login.html                          # Login page
