@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.9.18</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.9.19</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.9.18-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.9.19-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -32,21 +32,22 @@
 
 ---
 
-## 🆕 What's New in v2.9.18
+## 🆕 What's New in v2.9.19
 
-### Network Flow Enhancements
-- **Hostname Resolution**: Top Source, Top Router, and Top Destination cards now show reverse DNS hostname
-  - Parallel DNS lookups with 500ms timeout
-  - Displayed in italics below IP address
-- **Card Layout Reorganized**: Labels (titles) now at top of each card for better readability
-  - Before: Value → Label → Description
-  - After: Label → Value → Hostname → Description
-- **Consistent Styling**: Top Protocol volume now uses same gold color as other cards
+### Network Analytics Hostname Resolution
+- **NEW: Hostname Column** in Network Analytics table shows reverse DNS for source IPs
+- **NEW: Hostname in Detail Modal** — Double-click any event to see hostname in Source section
+- Parallel DNS resolution with caching (10 workers, 5s timeout)
+- Efficient: unique IPs resolved once, cached for all events
 
-### Previous Release (v2.9.17)
-- **Network Analytics**: Increased event limit from 30 to 100
-- **Webhook Receiver v1.9.0**: ALL 11 event types now saved to database
-- **Autowithdraw v3.4**: Peak attack statistics in withdraw notifications
+### Network Flow Enhancements (v2.9.18)
+- **Hostname Resolution**: Top Source, Top Router, and Top Destination cards show reverse DNS hostname
+- **Card Layout Reorganized**: Labels (titles) now at top of each card
+- **Consistent Styling**: Top Protocol volume uses same gold color as other cards
+
+### Previous Releases
+- **v2.9.17**: Network Analytics event limit increased to 100, complete webhook logging
+- **v2.9.16**: Dynamic status indicator for Network Analytics monitoring state
 
 ---
 

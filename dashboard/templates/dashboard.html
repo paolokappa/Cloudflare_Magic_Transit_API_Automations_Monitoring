@@ -908,6 +908,15 @@
             font-size: 0.8rem;
         }
 
+        .hostname-cell {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.7);
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .truncate {
             max-width: 150px;
             white-space: nowrap;
@@ -2721,6 +2730,7 @@
                             <th>Time</th>
                             <th>Attack Vector</th>
                             <th>Source IP</th>
+                            <th>Hostname</th>
                             <th>Country</th>
                             <th>Dest IP</th>
                             <th>Port</th>
@@ -2737,6 +2747,7 @@
                         <td class="timestamp">${formatRelative(event.event_datetime)}</td>
                         <td><span class="badge badge-warning">${event.attack_vector || '-'}</span></td>
                         <td class="ip-mono">${event.source_ip || '-'}</td>
+                        <td class="hostname-cell">${event.source_hostname || '-'}</td>
                         <td>${event.source_country || '-'}</td>
                         <td class="ip-mono">${event.dest_ip || '-'}</td>
                         <td>${event.dest_port || '-'}</td>
@@ -4211,9 +4222,12 @@
                 const sourceSection = dynamicSection('🌍 Source', [
                     dynamicRow([
                         dynamicItem('IP', sourceStr),
-                        dynamicItem('Country', event.source_country)
+                        dynamicItem('Hostname', event.source_hostname, { cssClass: 'detail-value-text' })
                     ]),
-                    dynamicRow([dynamicItem('ASN', sourceAsnStr, { cssClass: 'detail-value-text' })]),
+                    dynamicRow([
+                        dynamicItem('Country', event.source_country),
+                        dynamicItem('ASN', sourceAsnStr, { cssClass: 'detail-value-text' })
+                    ]),
                     dynamicRow([dynamicItem('CF PoP', coloStr)])
                 ]);
 

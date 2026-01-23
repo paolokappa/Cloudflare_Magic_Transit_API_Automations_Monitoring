@@ -1,6 +1,6 @@
 # Cloudflare Magic Transit Dashboard
 
-**Version**: 2.9.18
+**Version**: 2.9.19
 **Created**: 2026-01-20
 **Last Updated**: 2026-01-23
 **Author**: GOLINE SOC
@@ -11,7 +11,18 @@
 
 Real-time web dashboard for monitoring Cloudflare Magic Transit infrastructure. Provides visibility into BGP prefix status, DDoS attack events, network analytics, MNM rules, and service health.
 
-### Recent Changes (v2.9.18)
+### Recent Changes (v2.9.19)
+
+- **Network Analytics - Source IP Hostname Resolution**:
+  - **NEW**: Added "Hostname" column to Network Analytics table
+  - **NEW**: Hostname displayed in detail modal (double-click) under Source section
+  - Reverse DNS lookup for each unique source IP
+  - Parallel resolution using ThreadPoolExecutor (10 workers, 5s timeout)
+  - Hostname cache to avoid duplicate lookups for same IP
+  - New CSS class `.hostname-cell` (0.75rem, ellipsis overflow)
+  - API fields: `source_hostname` added to `/api/analytics` and `/api/analytics/<id>` responses
+
+### Changes (v2.9.18)
 
 - **Network Flow - Hostname Resolution**:
   - **NEW**: Top Source, Top Router, and Top Destination cards now show hostname

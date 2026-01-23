@@ -537,6 +537,20 @@ def api_analytics():
             LIMIT 100
         """)
 
+        # Collect unique source IPs for batch hostname resolution
+        unique_ips = set(row['source_ip'] for row in rows if row['source_ip'])
+
+        # Resolve hostnames in parallel with cache
+        hostname_cache = {}
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(resolve_hostname, ip): ip for ip in unique_ips}
+            for future in as_completed(futures, timeout=5):
+                ip = futures[future]
+                try:
+                    hostname_cache[ip] = future.result()
+                except Exception:
+                    hostname_cache[ip] = ''
+
         events = []
         for row in rows:
             # Format timestamps as ISO 8601 with UTC indicator
@@ -548,13 +562,15 @@ def api_analytics():
             if timestamp and not timestamp.endswith('Z') and '+' not in timestamp:
                 timestamp = timestamp.replace(' ', 'T') + 'Z'
 
+            source_ip = row['source_ip']
             events.append({
                 "id": row['id'],
                 "event_datetime": event_datetime,
                 "attack_id": row['attack_id'],
                 "attack_vector": row['attack_vector'],
                 "rule_name": row['rule_name'],
-                "source_ip": row['source_ip'],
+                "source_ip": source_ip,
+                "source_hostname": hostname_cache.get(source_ip, '') if source_ip else '',
                 "source_country": row['colo_country'],
                 "dest_ip": row['destination_ip'],
                 "dest_port": row['destination_port'],
@@ -642,6 +658,7 @@ def api_analytics_detail(analytics_id):
             "rule_id": row['rule_id'],
             "rule_description": rule_description,
             "source_ip": row['source_ip'],
+            "source_hostname": resolve_hostname(row['source_ip']) if row['source_ip'] else '',
             "source_port": row['source_port'],
             "source_asn": row['source_asn'],
             "source_asn_name": row['source_asn_name'],
