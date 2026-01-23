@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.9.16</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.9.17</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.9.16-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.9.17-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -29,6 +29,23 @@
   <img src="https://img.shields.io/badge/HTML%2FCSS%2FJS-35%25-e34c26.svg?logo=html5&logoColor=white" alt="HTML"/>
   <img src="https://img.shields.io/badge/Shell-1%25-4eaa25.svg?logo=gnu-bash&logoColor=white" alt="Shell"/>
 </p>
+
+---
+
+## 🆕 What's New in v2.9.17
+
+### Dashboard Improvements
+- **Network Analytics**: Increased event limit from 30 to 100 for better historical visibility
+
+### Webhook Receiver v1.9.0
+- **Complete Database Logging**: ALL 11 webhook event types now saved to database
+- Previously missing: L7 DDoS, Tunnel Health, Cloudflare Incidents, Health Checks, BGP Hijacks
+- Result: Complete event history visible in "DDoS Protection Log" section
+
+### Autowithdraw v3.4
+- **Peak Attack Statistics**: Withdraw notifications now show actual attack data
+- Before: Showed "0 pkts, 0 Mbps" (current traffic during calm period)
+- After: Shows peak values from the attack (e.g., "125,000 pkts, 3.5 Mbps")
 
 ---
 
@@ -464,10 +481,10 @@ flowchart TD
 
 | Script | Version | Description | Service |
 |--------|---------|-------------|---------|
-| `cloudflare-webhook-receiver.py` | v1.8.0 | Webhook receiver - notifications + DB logging | `cloudflare-webhook.service` |
+| `cloudflare-webhook-receiver.py` | v1.9.0 | Webhook receiver - all events logged to DB | `cloudflare-webhook.service` |
 | `cloudflare-network-analytics-monitor.py` | v1.3.9 | GraphQL poller with GeoIP2 enrichment | `cloudflare-analytics-monitor.service` |
-| `cloudflare-autowithdraw.py` | v3.3 | **ONLY** service that performs BGP withdrawals | `cloudflare-autowithdraw.service` |
-| `dashboard/app.py` | v2.9.16 | Web dashboard with prefix management | `cloudflare-dashboard.service` |
+| `cloudflare-autowithdraw.py` | v3.4 | **ONLY** service that performs BGP withdrawals | `cloudflare-autowithdraw.service` |
+| `dashboard/app.py` | v2.9.17 | Web dashboard with prefix management | `cloudflare-dashboard.service` |
 
 ### Management Tools
 
@@ -671,7 +688,7 @@ cloudflare-magic-transit/
 │   ├── cloudflare-services-watchdog.sh         # HA watchdog (v1.2)
 │   └── db_manager.py                           # Database operations (v1.3.0)
 ├── dashboard/
-│   ├── app.py                                  # Flask web dashboard (v2.9.16)
+│   ├── app.py                                  # Flask web dashboard (v2.9.17)
 │   ├── templates/
 │   │   ├── dashboard.html                      # Main dashboard
 │   │   ├── login.html                          # Login page
