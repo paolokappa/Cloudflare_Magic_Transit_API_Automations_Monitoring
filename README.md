@@ -231,14 +231,14 @@ Comprehensive support for **11 Cloudflare alert types**:
 |----------|------------|----------|:----------:|
 | **DDoS Protection** | `advanced_ddos_attack_l4_alert` | HIGH | ✅ |
 | | `dos_attack_l4` | HIGH | ✅ |
-| | `dos_attack_l7` | HIGH | ✅ |
+| | `dos_attack_l7` | HIGH | ✅ (v1.9.0) |
 | **Magic Network Monitoring** | `fbm_dosd_attack` | HIGH | ✅ |
 | | `fbm_volumetric_attack` | MEDIUM | ✅ |
 | **Magic Transit** | `fbm_auto_advertisement` | INFO | ✅ |
-| | `magic_tunnel_health_check_event` | HIGH | ❌ |
-| **Route Leak Detection** | `bgp_hijack_notification` | CRITICAL | ❌ |
-| **Platform Status** | `incident_alert` | VARIES | ❌ |
-| **Health Checks** | `health_check_status_notification` | MEDIUM | ❌ |
+| | `magic_tunnel_health_check_event` | HIGH | ✅ (v1.9.0) |
+| **Route Leak Detection** | `bgp_hijack_notification` | CRITICAL | ✅ (v1.9.0) |
+| **Platform Status** | `incident_alert` | VARIES | ✅ (v1.9.0) |
+| **Health Checks** | `health_check_status_notification` | MEDIUM | ✅ (v1.9.0) |
 
 ### Unified Withdraw Architecture (v2.1.0+)
 
@@ -248,7 +248,7 @@ Comprehensive support for **11 Cloudflare alert types**:
 flowchart TB
     subgraph NOTIFY["NOTIFICATIONS ONLY"]
         direction TB
-        WH["cloudflare-webhook.service<br/>v1.8.0"]
+        WH["cloudflare-webhook.service<br/>v1.9.0"]
         AN["cloudflare-analytics-monitor.service<br/>v1.3.8"]
 
         WH --> |"Webhooks START/END"| DB1[(Database)]
@@ -259,7 +259,7 @@ flowchart TB
 
     subgraph WITHDRAW["WITHDRAW OPERATIONS (Single Source)"]
         direction TB
-        AUTO["cloudflare-autowithdraw.service<br/>v3.3 - Every 60 seconds"]
+        AUTO["cloudflare-autowithdraw.service<br/>v3.4 - Every 60 seconds"]
 
         AUTO --> |"GraphQL mitigated traffic"| CHECK{Calm for<br/>15 min?}
         CHECK -->|Yes| BGP["BGP WITHDRAW"]
@@ -660,7 +660,7 @@ systemctl restart cloudflare-webhook cloudflare-analytics-monitor cloudflare-aut
 | [DASHBOARD.md](docs/DASHBOARD.md) | **Web dashboard** - authentication, API, configuration |
 | [WEBHOOK_RECEIVER.md](docs/WEBHOOK_RECEIVER.md) | Webhook handler - 11 alert types |
 | [NETWORK_ANALYTICS_MONITOR.md](docs/NETWORK_ANALYTICS_MONITOR.md) | GraphQL poller with GeoIP2 |
-| [AUTOWITHDRAW.md](docs/AUTOWITHDRAW.md) | Auto-withdraw daemon (v3.3) with API fix |
+| [AUTOWITHDRAW.md](docs/AUTOWITHDRAW.md) | Auto-withdraw daemon (v3.4) with peak stats |
 | [PREFIX_MANAGER.md](docs/PREFIX_MANAGER.md) | CLI prefix management tool (v1.4.0 with DB logging) |
 | [RULES_MANAGER.md](docs/RULES_MANAGER.md) | MNM rules manager |
 | [SERVICES_WATCHDOG.md](docs/SERVICES_WATCHDOG.md) | HA watchdog script |
@@ -680,9 +680,9 @@ cloudflare-magic-transit/
 │   ├── prefix_mapping.json.example    # Prefix mapping template
 │   └── auth.json.example              # Dashboard auth template
 ├── scripts/
-│   ├── cloudflare-webhook-receiver.py          # Webhook handler (v1.8.0)
+│   ├── cloudflare-webhook-receiver.py          # Webhook handler (v1.9.0)
 │   ├── cloudflare-network-analytics-monitor.py # GraphQL poller + GeoIP2 (v1.3.9)
-│   ├── cloudflare-autowithdraw.py              # Auto-withdraw daemon (v3.3)
+│   ├── cloudflare-autowithdraw.py              # Auto-withdraw daemon (v3.4)
 │   ├── cloudflare-prefix-manager.py            # CLI prefix tool (v1.4.0)
 │   ├── cloudflare-rules-manager.py             # MNM rules manager (v1.4)
 │   ├── cloudflare-services-watchdog.sh         # HA watchdog (v1.2)
@@ -719,6 +719,7 @@ cloudflare-magic-transit/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| **2.9.17** | 2026-01-23 | **Complete DB Logging** - All webhook handlers now save to database (v1.9.0), Dashboard limit increased to 100 events, Autowithdraw shows peak attack stats (v3.4) |
 | **2.9.16** | 2026-01-22 | **Network Analytics Status Indicator** - Dynamic status in card header shows monitoring state (⏸️ Paused / ✅ Active) based on BGP prefix status |
 | **2.9.16** | 2026-01-22 | **Analytics Monitor v1.3.9** - Bug fix: Improved polling visibility (debug→info logging for heartbeat) |
 | **2.9.15** | 2026-01-22 | **Stats API Bug Fixes** - Timestamp format fix (SQLite datetime), stats now show only real attacks (START events) |
