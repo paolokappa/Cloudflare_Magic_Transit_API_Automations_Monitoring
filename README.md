@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.9.17</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.9.18</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.9.17-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.9.18-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -32,20 +32,21 @@
 
 ---
 
-## 🆕 What's New in v2.9.17
+## 🆕 What's New in v2.9.18
 
-### Dashboard Improvements
-- **Network Analytics**: Increased event limit from 30 to 100 for better historical visibility
+### Network Flow Enhancements
+- **Hostname Resolution**: Top Source, Top Router, and Top Destination cards now show reverse DNS hostname
+  - Parallel DNS lookups with 500ms timeout
+  - Displayed in italics below IP address
+- **Card Layout Reorganized**: Labels (titles) now at top of each card for better readability
+  - Before: Value → Label → Description
+  - After: Label → Value → Hostname → Description
+- **Consistent Styling**: Top Protocol volume now uses same gold color as other cards
 
-### Webhook Receiver v1.9.0
-- **Complete Database Logging**: ALL 11 webhook event types now saved to database
-- Previously missing: L7 DDoS, Tunnel Health, Cloudflare Incidents, Health Checks, BGP Hijacks
-- Result: Complete event history visible in "DDoS Protection Log" section
-
-### Autowithdraw v3.4
-- **Peak Attack Statistics**: Withdraw notifications now show actual attack data
-- Before: Showed "0 pkts, 0 Mbps" (current traffic during calm period)
-- After: Shows peak values from the attack (e.g., "125,000 pkts, 3.5 Mbps")
+### Previous Release (v2.9.17)
+- **Network Analytics**: Increased event limit from 30 to 100
+- **Webhook Receiver v1.9.0**: ALL 11 event types now saved to database
+- **Autowithdraw v3.4**: Peak attack statistics in withdraw notifications
 
 ---
 

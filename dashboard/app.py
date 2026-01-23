@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import sqlite3
+import socket
 import requests
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
@@ -116,8 +117,8 @@ if not AUTH_KEY:
     print("WARNING: global_api_key not found in config!")
 
 # DDoS Managed Ruleset
-DDOS_L4_RULESET_ID = "YOUR_DDOS_L4_RULESET_ID"
-DDOS_L4_ROOT_ID = "YOUR_ACCOUNT_ROOT_RULESET_ID"  # Account root ruleset for overrides
+DDOS_L4_RULESET_ID = "3b64149bfa6e4220bbbc2bd6db589552"
+DDOS_L4_ROOT_ID = "108b5719d12e4169a0ac2e4f499d8bae"  # Account root ruleset for overrides
 
 # =============================================================================
 # DATABASE HELPERS
@@ -196,6 +197,20 @@ def cf_api_get_global(url):
         return response.json()
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+def resolve_hostname(ip):
+    """Resolve IP to hostname with short timeout. Returns hostname or empty string."""
+    if not ip or ip == '-':
+        return ''
+    try:
+        socket.setdefaulttimeout(0.5)  # 500ms timeout
+        hostname = socket.gethostbyaddr(ip)[0]
+        # Return short hostname (first part before domain)
+        return hostname
+    except (socket.herror, socket.gaierror, socket.timeout, OSError):
+        return ''
+    finally:
+        socket.setdefaulttimeout(None)
 
 # =============================================================================
 # ROUTES - PAGES
@@ -1774,6 +1789,21 @@ def api_network_flow():
         top_destination = by_destination[0]['dimensions']['destinationAddress'] if by_destination else '-'
         top_destination_bits = by_destination[0]['sum']['bits'] if by_destination else 0
 
+        # Resolve hostnames in parallel (with short timeout)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(resolve_hostname, top_source): 'source',
+                executor.submit(resolve_hostname, top_router): 'router',
+                executor.submit(resolve_hostname, top_destination): 'destination'
+            }
+            hostnames = {'source': '', 'router': '', 'destination': ''}
+            for future in as_completed(futures, timeout=2):
+                key = futures[future]
+                try:
+                    hostnames[key] = future.result()
+                except Exception:
+                    hostnames[key] = ''
+
         return jsonify({
             "success": True,
             "network_flow": {
@@ -1783,10 +1813,13 @@ def api_network_flow():
                 "top_protocol_bits": top_protocol_bits,
                 "top_source": top_source,
                 "top_source_bits": top_source_bits,
+                "top_source_hostname": hostnames['source'],
                 "top_router": top_router,
                 "top_router_bits": top_router_bits,
+                "top_router_hostname": hostnames['router'],
                 "top_destination": top_destination,
-                "top_destination_bits": top_destination_bits
+                "top_destination_bits": top_destination_bits,
+                "top_destination_hostname": hostnames['destination']
             },
             "period": "24h",
             "timestamp": datetime.now(timezone.utc).isoformat()

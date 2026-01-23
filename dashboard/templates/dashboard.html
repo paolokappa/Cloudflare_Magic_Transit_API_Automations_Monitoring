@@ -282,6 +282,16 @@
             font-size: 0.85rem;
             font-family: 'Courier New', monospace;
             font-weight: 600;
+        }
+
+        .stat-hostname {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
             white-space: nowrap;
         }
 
@@ -1801,33 +1811,36 @@
         </div>
         <div class="stats-grid" id="network-flow-grid">
             <div class="stat-card stat-rate" title="Average bit rate across all traffic in the last 24 hours">
-                <div class="stat-value" id="stat-avg-bps">-</div>
                 <div class="stat-label">Avg Bit Rate</div>
+                <div class="stat-value" id="stat-avg-bps">-</div>
                 <div class="stat-desc">(last 24h)</div>
             </div>
             <div class="stat-card stat-rate" title="Average packet rate across all traffic in the last 24 hours">
-                <div class="stat-value" id="stat-avg-pps">-</div>
                 <div class="stat-label">Avg Packet Rate</div>
+                <div class="stat-value" id="stat-avg-pps">-</div>
                 <div class="stat-desc">(last 24h)</div>
             </div>
             <div class="stat-card stat-protocol" title="Protocol with highest traffic volume in the last 24 hours">
-                <div class="stat-value stat-value-text" id="stat-top-protocol">-</div>
                 <div class="stat-label">Top Protocol</div>
-                <div class="stat-desc" id="stat-top-protocol-vol">By traffic volume</div>
+                <div class="stat-value stat-value-text" id="stat-top-protocol">-</div>
+                <div class="stat-desc stat-vol" id="stat-top-protocol-vol">By traffic volume</div>
             </div>
             <div class="stat-card stat-source" title="Source IP with highest traffic volume in the last 24 hours">
-                <div class="stat-value stat-value-text stat-value-ip" id="stat-top-source">-</div>
                 <div class="stat-label stat-label-sm">Top Source</div>
+                <div class="stat-value stat-value-text stat-value-ip" id="stat-top-source">-</div>
+                <div class="stat-hostname" id="stat-top-source-hostname"></div>
                 <div class="stat-desc stat-vol" id="stat-top-source-vol">By traffic volume</div>
             </div>
             <div class="stat-card stat-router" title="GOLINE router with highest traffic volume in the last 24 hours">
-                <div class="stat-value stat-value-text stat-value-ip" id="stat-top-router">-</div>
                 <div class="stat-label stat-label-sm">Top Router</div>
+                <div class="stat-value stat-value-text stat-value-ip" id="stat-top-router">-</div>
+                <div class="stat-hostname" id="stat-top-router-hostname"></div>
                 <div class="stat-desc stat-vol" id="stat-top-router-vol">By traffic volume</div>
             </div>
             <div class="stat-card stat-destination" title="Destination IP with highest traffic volume in the last 24 hours">
-                <div class="stat-value stat-value-text stat-value-ip" id="stat-top-destination">-</div>
                 <div class="stat-label stat-label-sm">Top Destination</div>
+                <div class="stat-value stat-value-text stat-value-ip" id="stat-top-destination">-</div>
+                <div class="stat-hostname" id="stat-top-destination-hostname"></div>
                 <div class="stat-desc stat-vol" id="stat-top-destination-vol">By traffic volume</div>
             </div>
         </div>
@@ -2456,10 +2469,13 @@
                 document.getElementById('stat-top-protocol').textContent = flow.top_protocol || '-';
                 document.getElementById('stat-top-protocol-vol').textContent = formatVolume(flow.top_protocol_bits);
                 document.getElementById('stat-top-source').textContent = flow.top_source || '-';
+                document.getElementById('stat-top-source-hostname').textContent = flow.top_source_hostname || '';
                 document.getElementById('stat-top-source-vol').textContent = formatVolume(flow.top_source_bits);
                 document.getElementById('stat-top-router').textContent = flow.top_router || '-';
+                document.getElementById('stat-top-router-hostname').textContent = flow.top_router_hostname || '';
                 document.getElementById('stat-top-router-vol').textContent = formatVolume(flow.top_router_bits);
                 document.getElementById('stat-top-destination').textContent = flow.top_destination || '-';
+                document.getElementById('stat-top-destination-hostname').textContent = flow.top_destination_hostname || '';
                 document.getElementById('stat-top-destination-vol').textContent = formatVolume(flow.top_destination_bits);
             } else {
                 // Show error state
@@ -2468,10 +2484,13 @@
                 document.getElementById('stat-top-protocol').textContent = 'Error';
                 document.getElementById('stat-top-protocol-vol').textContent = '-';
                 document.getElementById('stat-top-source').textContent = 'Error';
+                document.getElementById('stat-top-source-hostname').textContent = '';
                 document.getElementById('stat-top-source-vol').textContent = '-';
                 document.getElementById('stat-top-router').textContent = 'Error';
+                document.getElementById('stat-top-router-hostname').textContent = '';
                 document.getElementById('stat-top-router-vol').textContent = '-';
                 document.getElementById('stat-top-destination').textContent = 'Error';
+                document.getElementById('stat-top-destination-hostname').textContent = '';
                 document.getElementById('stat-top-destination-vol').textContent = '-';
             }
         }

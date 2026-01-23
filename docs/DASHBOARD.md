@@ -1,6 +1,6 @@
 # Cloudflare Magic Transit Dashboard
 
-**Version**: 2.9.17
+**Version**: 2.9.18
 **Created**: 2026-01-20
 **Last Updated**: 2026-01-23
 **Author**: GOLINE SOC
@@ -11,7 +11,28 @@
 
 Real-time web dashboard for monitoring Cloudflare Magic Transit infrastructure. Provides visibility into BGP prefix status, DDoS attack events, network analytics, MNM rules, and service health.
 
-### Recent Changes (v2.9.17)
+### Recent Changes (v2.9.18)
+
+- **Network Flow - Hostname Resolution**:
+  - **NEW**: Top Source, Top Router, and Top Destination cards now show hostname
+  - Reverse DNS lookup performed with 500ms timeout per IP
+  - Hostnames resolved in parallel using ThreadPoolExecutor
+  - Displayed in italics below the IP address
+  - New CSS class `.stat-hostname` for compact display
+  - API fields: `top_source_hostname`, `top_router_hostname`, `top_destination_hostname`
+
+- **Network Flow - Card Layout Reorganization**:
+  - **CHANGED**: Labels (titles) moved to top of each card as first element
+  - **Before**: Value → Hostname → Label → Description
+  - **After**: Label → Value → Hostname → Description
+  - Consistent across all 6 Network Flow cards
+
+- **Network Flow - Top Protocol Volume Styling**:
+  - **FIXED**: Volume in Top Protocol card now uses same styling as other cards
+  - Added `stat-vol` class for consistent amber/gold color (#fbbf24)
+  - Same font-size (0.95rem) and font-weight (600) as other volume displays
+
+### Changes (v2.9.17)
 
 - **Network Analytics - Increased Event Limit**:
   - **CHANGED**: Increased `LIMIT` from 30 to 100 events in `/api/analytics` endpoint
@@ -1086,11 +1107,19 @@ Real-time traffic statistics from Cloudflare MNM Flow Data GraphQL API (last 24 
 | Avg Bit Rate | Blue (#3b82f6) | `stat-rate` | `avg_bit_rate` | `XXX.XX Mbps` |
 | Avg Packet Rate | Blue (#3b82f6) | `stat-rate` | `avg_packet_rate` | `XX.X kpps` |
 | Top Protocol | Purple (#8b5cf6) | `stat-protocol` | `top_protocol` | Protocol name (ESP/TCP/UDP) |
-| Top Source | Amber (#f59e0b) | `stat-source` | `top_source` | IP address |
-| Top Router | Emerald (#10b981) | `stat-router` | `top_router` | GOLINE router IP |
-| Top Destination | Pink (#ec4899) | `stat-destination` | `top_destination` | IP address |
+| Top Source | Amber (#f59e0b) | `stat-source` | `top_source`, `top_source_hostname` | IP + hostname |
+| Top Router | Emerald (#10b981) | `stat-router` | `top_router`, `top_router_hostname` | IP + hostname |
+| Top Destination | Pink (#ec4899) | `stat-destination` | `top_destination`, `top_destination_hostname` | IP + hostname |
+
+**Card Layout (v2.9.18):** Each card displays elements in this order:
+1. **Label** (title) - e.g., "Top Source", "Top Router"
+2. **Value** - IP address or metric value
+3. **Hostname** (if available) - Reverse DNS lookup result
+4. **Volume** - Traffic volume in TB/GB
 
 **Volume Display:** Each "Top" card shows the total traffic volume in the description area (e.g., "2.72 TB").
+
+**Hostname Resolution:** IP-based cards (Top Source, Top Router, Top Destination) perform reverse DNS lookup with 500ms timeout. Hostnames are resolved in parallel using ThreadPoolExecutor.
 
 #### API Endpoint: `GET /api/network-flow`
 
@@ -1105,10 +1134,13 @@ Real-time traffic statistics from Cloudflare MNM Flow Data GraphQL API (last 24 
     "top_protocol_bits": 21794555616000,
     "top_source": "185.54.80.30",
     "top_source_bits": 22105202656000,
+    "top_source_hostname": "fortigate01.goline.ch",
     "top_router": "185.54.80.2",
     "top_router_bits": 29659473496000,
+    "top_router_hostname": "netengine01.goline.ch",
     "top_destination": "213.144.134.18",
-    "top_destination_bits": 16205941048000
+    "top_destination_bits": 16205941048000,
+    "top_destination_hostname": "dhcp-213-144-134-18.init7.net"
   },
   "period": "24h",
   "timestamp": "2026-01-21T02:15:00.000000+00:00"
@@ -1125,10 +1157,13 @@ Real-time traffic statistics from Cloudflare MNM Flow Data GraphQL API (last 24 
 | `top_protocol_bits` | Integer | bits (24h total) | TB | ÷ 8 ÷ 1e12 | 21794555616000 → "2.72 TB" |
 | `top_source` | String | - | - | None | "185.54.80.30" |
 | `top_source_bits` | Integer | bits (24h total) | TB | ÷ 8 ÷ 1e12 | 22105202656000 → "2.76 TB" |
+| `top_source_hostname` | String | - | - | Reverse DNS | "fortigate01.goline.ch" |
 | `top_router` | String | - | - | None | "185.54.80.2" |
 | `top_router_bits` | Integer | bits (24h total) | TB | ÷ 8 ÷ 1e12 | 29659473496000 → "3.71 TB" |
+| `top_router_hostname` | String | - | - | Reverse DNS | "netengine01.goline.ch" |
 | `top_destination` | String | - | - | None | "213.144.134.18" |
 | `top_destination_bits` | Integer | bits (24h total) | TB | ÷ 8 ÷ 1e12 | 16205941048000 → "2.03 TB" |
+| `top_destination_hostname` | String | - | - | Reverse DNS | "dhcp-213-144-134-18.init7.net" |
 
 #### Unit Conversions
 
@@ -1160,8 +1195,8 @@ Display thresholds:
 | `avg_bit_rate` | ~347 Mbps | Average bandwidth utilization |
 | `avg_packet_rate` | ~42 kpps | Average packet rate |
 | `top_protocol` | ESP | IPsec tunnel traffic (WireGuard/VPN) |
-| `top_source` | 185.54.80.30 | matomo.goline.ch (high analytics traffic) |
-| `top_router` | 185.54.80.2 | Primary GOLINE border router |
+| `top_source` | 185.54.80.30 | fortigate01.goline.ch (high traffic source) |
+| `top_router` | 185.54.80.2 | netengine01.goline.ch (primary border router) |
 | `top_destination` | 213.144.134.18 | External destination with highest traffic |
 
 #### CSS Styling
@@ -1175,6 +1210,7 @@ Display thresholds:
 | Protocol text | `.stat-value-text` | 1.2rem | Word-break |
 | IP card labels | `.stat-label-sm` | 0.65rem | Nowrap |
 | Volume counters | `.stat-vol` | 0.95rem | Gold #fbbf24, weight 600 |
+| Hostnames | `.stat-hostname` | 0.65rem | Italic, rgba(255,255,255,0.6), ellipsis |
 
 **Labels:**
 - Rate cards: "(last 24h)" in description
