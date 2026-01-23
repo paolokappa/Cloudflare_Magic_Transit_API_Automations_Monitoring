@@ -25,9 +25,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-64%25-3776ab.svg?logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/HTML%2FCSS%2FJS-35%25-e34c26.svg?logo=html5&logoColor=white" alt="HTML"/>
-  <img src="https://img.shields.io/badge/Shell-1%25-4eaa25.svg?logo=gnu-bash&logoColor=white" alt="Shell"/>
+  <img src="https://img.shields.io/badge/Python-58.4%25-3776ab.svg?logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/HTML-40.5%25-e34c26.svg?logo=html5&logoColor=white" alt="HTML"/>
+  <img src="https://img.shields.io/badge/Shell-1.1%25-4eaa25.svg?logo=gnu-bash&logoColor=white" alt="Shell"/>
 </p>
 
 ---
