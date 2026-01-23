@@ -34,17 +34,17 @@
 
 ## 🆕 What's New in v2.9.21
 
-### CNI/Tunnel Pass Rate Fix (v2.9.20)
-- **BUG FIX**: CNI pass rate now correctly shows ~74% instead of incorrect 50%
-- **Cause**: Was using `avg(tunnelState)` which is always 0.5 for CNI (degraded state)
-- **Fix**: Now calculates `count(resultStatus=ok) / total * 100` to match Cloudflare dashboard
-
 ### Improved Prefix Constraint Messages (v2.9.21)
 - **Better UI**: Constraint messages now show Cloudflare attribution
   - During cooldown: `⏱️ Can advertise in X.X min (Cloudflare API cooldown)`
   - When ready: `✅ Ready to advertise`
 - **Fix**: Backend returns updated state in advertise/withdraw response
 - **Fix**: 500ms delay before refresh to allow API state propagation
+
+### CNI/Tunnel Pass Rate Fix (v2.9.20)
+- **BUG FIX**: CNI pass rate now correctly shows ~74% instead of incorrect 50%
+- **Cause**: Was using `avg(tunnelState)` which is always 0.5 for CNI (degraded state)
+- **Fix**: Now calculates `count(resultStatus=ok) / total * 100` to match Cloudflare dashboard
 
 ### Network Analytics Hostname Resolution (v2.9.19)
 - **NEW: Hostname Column** in Network Analytics table shows reverse DNS for source IPs
