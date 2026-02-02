@@ -1,8 +1,8 @@
 # Cloudflare Magic Transit Dashboard
 
-**Version**: 2.9.21
+**Version**: 2.9.22
 **Created**: 2026-01-20
-**Last Updated**: 2026-01-23
+**Last Updated**: 2026-02-02
 **Author**: GOLINE SOC
 
 ---
@@ -11,7 +11,17 @@
 
 Real-time web dashboard for monitoring Cloudflare Magic Transit infrastructure. Provides visibility into BGP prefix status, DDoS attack events, network analytics, MNM rules, and service health.
 
-### Recent Changes (v2.9.19)
+### Recent Changes (v2.9.22)
+
+- **DNS Timeout Graceful Handling**:
+  - **BUG FIXED**: "Error: 1 (of 70) futures unfinished" in Network Analytics section
+  - **CAUSE**: `as_completed(futures, timeout=5)` raises TimeoutError when DNS lookups don't complete
+  - **FIX**: Wrapped `as_completed()` loops in try/except TimeoutError to continue with partial results
+  - **Affected endpoints**: `/api/analytics` and `/api/network-flow`
+  - **Result**: Dashboard displays data even when some hostname resolutions timeout
+  - Hostnames that timeout are simply left empty instead of failing the entire API
+
+### Changes (v2.9.19)
 
 - **Network Analytics - Source IP Hostname Resolution**:
   - **NEW**: Added "Hostname" column to Network Analytics table
@@ -2209,19 +2219,18 @@ Access is restricted to authorized networks only:
 | Network | Description |
 |---------|-------------|
 | `127.0.0.1`, `::1` | Localhost |
-| `185.54.80.0/22` | GOLINE Networks |
-| `2a02:4460::/32` | GOLINE IPv6 |
-| `185.109.164.26` | Admin (Cadro) |
-| `213.193.119.162` | Admin secondary |
-| `2001:470:26:100::/64` | Admin HE tunnel |
-| `2001:470:b5b2::/48` | Admin HE routed |
-| `83.150.40.202` | Lily's Office |
-| `83.150.40.207` | Lily's Factory |
-| `83.150.42.99` | Lily's Original |
-| `185.160.244.194` | Lily's Maxim |
-| `192.168.220.0/22` | Internal LAN |
-| `192.168.1.0/24` | Internal LAN |
-| `172.27.224.0/24` | WireGuard VPN |
+| `YOUR_IPV4_RANGE/22` | Your public IPv4 range |
+| `YOUR_IPV6_RANGE/32` | Your IPv6 range |
+| `ADMIN_IP_1` | Admin primary |
+| `ADMIN_IP_2` | Admin secondary |
+| `ADMIN_IPV6_1/64` | Admin IPv6 tunnel |
+| `ADMIN_IPV6_2/48` | Admin IPv6 routed |
+| `CLIENT_IP_1` | Client office 1 |
+| `CLIENT_IP_2` | Client office 2 |
+| `CLIENT_IP_3` | Client office 3 |
+| `CLIENT_IP_4` | Client office 4 |
+| `192.168.0.0/16` | Internal LAN (RFC1918) |
+| `172.16.0.0/12` | VPN ranges (RFC1918) |
 
 ### Proxy Configuration
 
@@ -2667,6 +2676,7 @@ SERVICES = [
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.9.22 | 2026-02-02 | DNS timeout graceful handling: `as_completed()` TimeoutError wrapped in try/except to continue with partial results |
 | 2.9.21 | 2026-01-23 | Improved constraint messages: "Can X in Y min (Cloudflare API cooldown)", "Ready to X", backend returns updated state |
 | 2.9.20 | 2026-01-23 | CNI/Tunnel pass rate fix: Calculate from `resultStatus=ok` instead of `tunnelState` to match Cloudflare dashboard |
 | 2.9.19 | 2026-01-23 | Network Analytics hostname resolution: Added Hostname column with reverse DNS lookup |

@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.9.21-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.9.22-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -733,6 +733,11 @@ cloudflare-magic-transit/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| **2.9.22** | 2026-02-02 | **DNS Timeout Fix** - Dashboard gracefully handles DNS lookup timeouts, **Analytics Monitor v1.3.10** - Added Cloudflare anycast prefixes (162.159/16, 172.64/13, 104.16/13) for complete traffic visibility |
+| **2.9.21** | 2026-01-23 | **Improved Constraint Messages** - Clearer "Cloudflare API cooldown" messaging, backend returns updated state |
+| **2.9.20** | 2026-01-23 | **CNI Pass Rate Fix** - Correct calculation using resultStatus=ok instead of tunnelState |
+| **2.9.19** | 2026-01-23 | **Network Analytics Hostname** - Added Hostname column with reverse DNS lookup |
+| **2.9.18** | 2026-01-23 | **Network Flow Hostnames** - Top Source/Router/Destination show resolved hostnames |
 | **2.9.17** | 2026-01-23 | **Complete DB Logging** - All webhook handlers now save to database (v1.9.0), Dashboard limit increased to 100 events, Autowithdraw shows peak attack stats (v3.4) |
 | **2.9.16** | 2026-01-22 | **Network Analytics Status Indicator** - Dynamic status in card header shows monitoring state (⏸️ Paused / ✅ Active) based on BGP prefix status |
 | **2.9.16** | 2026-01-22 | **Analytics Monitor v1.3.9** - Bug fix: Improved polling visibility (debug→info logging for heartbeat) |

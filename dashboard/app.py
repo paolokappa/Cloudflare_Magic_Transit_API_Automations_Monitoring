@@ -540,16 +540,20 @@ def api_analytics():
         # Collect unique source IPs for batch hostname resolution
         unique_ips = set(row['source_ip'] for row in rows if row['source_ip'])
 
-        # Resolve hostnames in parallel with cache
+        # Resolve hostnames in parallel with cache (graceful timeout handling)
         hostname_cache = {}
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(resolve_hostname, ip): ip for ip in unique_ips}
-            for future in as_completed(futures, timeout=5):
-                ip = futures[future]
-                try:
-                    hostname_cache[ip] = future.result()
-                except Exception:
-                    hostname_cache[ip] = ''
+            try:
+                for future in as_completed(futures, timeout=5):
+                    ip = futures[future]
+                    try:
+                        hostname_cache[ip] = future.result()
+                    except Exception:
+                        hostname_cache[ip] = ''
+            except TimeoutError:
+                # Some DNS lookups timed out - continue with partial results
+                pass
 
         events = []
         for row in rows:
@@ -1806,7 +1810,7 @@ def api_network_flow():
         top_destination = by_destination[0]['dimensions']['destinationAddress'] if by_destination else '-'
         top_destination_bits = by_destination[0]['sum']['bits'] if by_destination else 0
 
-        # Resolve hostnames in parallel (with short timeout)
+        # Resolve hostnames in parallel (with short timeout, graceful handling)
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
                 executor.submit(resolve_hostname, top_source): 'source',
@@ -1814,12 +1818,16 @@ def api_network_flow():
                 executor.submit(resolve_hostname, top_destination): 'destination'
             }
             hostnames = {'source': '', 'router': '', 'destination': ''}
-            for future in as_completed(futures, timeout=2):
-                key = futures[future]
-                try:
-                    hostnames[key] = future.result()
-                except Exception:
-                    hostnames[key] = ''
+            try:
+                for future in as_completed(futures, timeout=2):
+                    key = futures[future]
+                    try:
+                        hostnames[key] = future.result()
+                    except Exception:
+                        hostnames[key] = ''
+            except TimeoutError:
+                # DNS lookups timed out - continue with partial results
+                pass
 
         return jsonify({
             "success": True,

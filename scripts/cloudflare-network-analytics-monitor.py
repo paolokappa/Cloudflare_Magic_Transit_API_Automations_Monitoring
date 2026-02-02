@@ -6,10 +6,14 @@ Monitors DDoS mitigation events from Network Analytics and sends Telegram notifi
 This script queries the GraphQL API for dropped traffic events that may not trigger
 standard webhook notifications, ensuring all mitigation events are tracked.
 
-Version: 1.3.6
+Version: 1.3.10
 Author: GOLINE SOC
 
 Changelog:
+  v1.3.10 (2026-02-02): Added Cloudflare anycast prefixes (162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13) to show Magic Transit pass-through traffic
+  v1.3.9 (2026-01-22): Changed "no events" log from DEBUG to INFO for better polling visibility
+  v1.3.8 (2026-01-21): Enhanced startup message with BGP status, attack history, services health
+  v1.3.7 (2026-01-21): European date format DD/MM/YYYY throughout, shutdown message with stats
   v1.3.6 (2026-01-21): Added source ASN/Country to GraphQL query and DB - sourceAsn, sourceAsnName, sourceCountry
   v1.3.5 (2026-01-21): Enhanced startup message - system info, BGP status, services health, last attack
   v1.3.4 (2026-01-21): Show GeoIP DB type and update date in startup message (log + Telegram)
@@ -78,6 +82,10 @@ MIN_PACKETS_THRESHOLD = 1
 GOLINE_PREFIXES = [
     ipaddress.ip_network('185.54.80.0/22'),   # All GOLINE IPv4 (80, 81, 82, 83)
     ipaddress.ip_network('2a02:4460::/32'),   # GOLINE IPv6
+    # Cloudflare anycast ranges (Magic Transit traffic)
+    ipaddress.ip_network('162.159.0.0/16'),   # Cloudflare anycast
+    ipaddress.ip_network('172.64.0.0/13'),    # Cloudflare anycast
+    ipaddress.ip_network('104.16.0.0/13'),    # Cloudflare anycast
 ]
 
 def is_goline_ip(ip_str: str) -> bool:
@@ -1014,7 +1022,7 @@ def run_monitor(single_run: bool = False):
 🚀 *Network Analytics Monitor STARTED*
 
 📊 *Configuration*
-📌 Version: 1.3.8
+📌 Version: 1.3.10
 ⏰ Poll: {POLL_INTERVAL}s | Lookback: {LOOKBACK_MINUTES} min
 {geoip_line}
 

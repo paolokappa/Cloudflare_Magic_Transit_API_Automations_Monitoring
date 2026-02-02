@@ -1,7 +1,7 @@
 # Network Analytics Monitor
 
-**Version**: 1.3.6
-**Last Updated**: 2026-01-21
+**Version**: 1.3.10
+**Last Updated**: 2026-02-02
 
 ## Overview
 
@@ -10,7 +10,8 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 ### Key Features
 
 - **GraphQL Polling**: Queries `dosdNetworkAnalyticsAdaptiveGroups` every 5 minutes
-- **GOLINE Filter**: Only notifies for traffic to GOLINE prefixes (185.54.80.0/22, 2a02:4460::/32)
+- **Destination Filter**: Notifies for GOLINE prefixes AND Cloudflare anycast (Magic Transit pass-through)
+- **Cloudflare Anycast**: Includes 162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13
 - **GeoIP2 Enrichment**: Source IPs show country, city, and ASN information
 - **GeoIP Fallback**: Supports both commercial (GeoIP2) and free (GeoLite2) databases
 - **Spoofed IP Detection**: Identifies private/reserved IPs with ⚠️ indicator
@@ -24,7 +25,7 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                  NETWORK ANALYTICS MONITOR v1.3.6                │
+│                  NETWORK ANALYTICS MONITOR v1.3.10               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  Cloudflare GraphQL API                                          │
@@ -32,8 +33,8 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 │         │ dosdNetworkAnalyticsAdaptiveGroups (every 5 min)       │
 │         ▼                                                        │
 │  ┌────────────────────────┐                                      │
-│  │    GOLINE Prefix       │ Filter: 185.54.80.0/22              │
-│  │    Filter              │         2a02:4460::/32 (covers 2a02:4460:1::/48)              │
+│  │   Destination Filter   │ GOLINE: 185.54.80.0/22, 2a02:4460::/32│
+│  │                        │ CF Anycast: 162.159/16, 172.64/13    │
 │  └───────────┬────────────┘                                      │
 │              │                                                   │
 │              ▼                                                   │
@@ -73,15 +74,18 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 | `LOOKBACK_MINUTES` | 15 min | Time window for each query |
 | `MIN_PACKETS_THRESHOLD` | 1 | Minimum packets to trigger notification |
 
-### GOLINE Prefix Filter
+### Destination Prefix Filter
 
-| Prefix | Description |
-|--------|-------------|
-| `185.54.80.0/22` | All GOLINE IPv4 (covers 80, 81, 82, 83) |
-| `2a02:4460::/32 (covers 2a02:4460:1::/48)` | GOLINE IPv6 |
+| Prefix | Type | Description |
+|--------|------|-------------|
+| `185.54.80.0/22` | GOLINE | All GOLINE IPv4 (covers 80, 81, 82, 83) |
+| `2a02:4460::/32` | GOLINE | GOLINE IPv6 (covers 2a02:4460:1::/48) |
+| `162.159.0.0/16` | Cloudflare | Anycast IPs (Magic Transit pass-through) |
+| `172.64.0.0/13` | Cloudflare | Anycast IPs (Magic Transit pass-through) |
+| `104.16.0.0/13` | Cloudflare | Anycast IPs (Magic Transit pass-through) |
 
-**Why this filter?**
-Cloudflare's Network Analytics includes traffic to ALL destinations, including Cloudflare anycast IPs (162.159.x.x, 172.64.x.x). This filter prevents noise from non-GOLINE traffic.
+**Why include Cloudflare anycast?**
+When Magic Transit is active, some attacks target Cloudflare anycast IPs directly (e.g., 162.159.76.173). These are still attacks against GOLINE infrastructure being mitigated by Cloudflare. Including these prefixes ensures complete visibility of all DDoS mitigation events.
 
 ---
 
@@ -437,6 +441,27 @@ tail -100 logs/network-analytics-monitor.log
   - Attack history from database
   - Services health status (systemd)
 
+### v1.3.10 (2026-02-02)
+- **Cloudflare Anycast Visibility** - Added Cloudflare anycast prefixes to destination filter
+  - New prefixes: 162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13
+  - Shows Magic Transit pass-through traffic (attacks targeting Cloudflare IPs)
+  - Complete visibility of all DDoS mitigation events
+
+### v1.3.9 (2026-01-22)
+- **Polling visibility** - Changed "no events" log from DEBUG to INFO for better monitoring
+
+### v1.3.8 (2026-01-21)
+- **Enhanced startup message** - BGP status, attack history, services health
+
+### v1.3.7 (2026-01-21)
+- **European date format** - DD/MM/YYYY throughout, shutdown message with stats
+
+### v1.3.6 (2026-01-21)
+- **Source ASN/Country** - Added to GraphQL query and DB schema
+
+### v1.3.5 (2026-01-21)
+- **Enhanced startup message** - System info, BGP status, last attack
+
 ### v1.3.4 (2026-01-21)
 - **GeoIP info in startup** - Shows DB type and update date
 
@@ -476,4 +501,4 @@ tail -100 logs/network-analytics-monitor.log
 
 ---
 
-*Documentation v1.3.8 - 2026-01-21 - GOLINE SOC*
+*Documentation v1.3.10 - 2026-02-02 - GOLINE SOC*
