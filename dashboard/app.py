@@ -43,6 +43,7 @@ CONFIG_FILE = os.path.join(BASE_DIR, "config", "settings.json")
 PREFIX_FILE = os.path.join(BASE_DIR, "config", "prefix_mapping.json")
 AUTH_FILE = os.path.join(BASE_DIR, "config", "auth.json")
 DB_FILE = os.path.join(BASE_DIR, "db", "magic_transit.db")
+DASHBOARD_PREFS_FILE = os.path.join(BASE_DIR, "config", "dashboard_prefs.json")
 
 # Load configuration
 def load_config():
@@ -62,6 +63,73 @@ def save_auth(auth_data):
     """Save authentication configuration"""
     with open(AUTH_FILE, 'w') as f:
         json.dump(auth_data, f, indent=2)
+
+def load_dashboard_prefs():
+    """Load dashboard preferences"""
+    default_prefs = {
+        "analytics_display_mode": "all",  # "all", "when_protected", "auto_collapse"
+        "analytics_auto_collapse": True,   # Auto-collapse when no prefixes advertised
+        "analytics_show_count": 20,        # Number of events to show in table
+        "my_prefixes_only": True           # Filter notifications to my prefixes only (used by monitor)
+    }
+    try:
+        if os.path.exists(DASHBOARD_PREFS_FILE):
+            with open(DASHBOARD_PREFS_FILE, 'r') as f:
+                prefs = json.load(f)
+                # Merge with defaults
+                return {**default_prefs, **prefs}
+        return default_prefs
+    except Exception:
+        return default_prefs
+
+def save_dashboard_prefs(prefs):
+    """Save dashboard preferences"""
+    try:
+        with open(DASHBOARD_PREFS_FILE, 'w') as f:
+            json.dump(prefs, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving dashboard prefs: {e}")
+        return False
+
+def is_goline_destination(dest_ip):
+    """
+    Check if destination IP is a GOLINE direct prefix (185.54.80.0/22).
+    Returns False for Cloudflare anycast IPs (162.159.x.x, 172.64.x.x, 104.16.x.x).
+    """
+    if not dest_ip:
+        return True  # Include if no IP (shouldn't happen)
+
+    try:
+        import ipaddress
+        ip = ipaddress.ip_address(dest_ip)
+
+        # GOLINE prefixes
+        goline_networks = [
+            ipaddress.ip_network('185.54.80.0/22'),
+            ipaddress.ip_network('2a02:4460:1::/48')
+        ]
+
+        # Check if IP is in GOLINE range
+        for network in goline_networks:
+            if ip in network:
+                return True
+
+        # Cloudflare anycast ranges (filter these out)
+        cloudflare_anycast = [
+            ipaddress.ip_network('162.159.0.0/16'),
+            ipaddress.ip_network('172.64.0.0/13'),
+            ipaddress.ip_network('104.16.0.0/13'),
+        ]
+
+        for network in cloudflare_anycast:
+            if ip in network:
+                return False  # Anycast traffic - exclude
+
+        # Unknown destination - include by default
+        return True
+    except (ValueError, TypeError):
+        return True  # Include if can't parse IP
 
 def login_required(f):
     """Decorator to require login for protected routes"""
@@ -526,19 +594,88 @@ def api_attack_detail(attack_id):
 @app.route('/api/analytics')
 @login_required
 def api_analytics():
-    """Get recent network analytics events from database"""
-    try:
-        rows = query_db("""
-            SELECT id, event_datetime, attack_id, attack_vector, rule_name,
-                   source_ip, colo_country, destination_ip, destination_port,
-                   protocol, packets, bits, outcome, notified_at
-            FROM network_analytics_events
-            ORDER BY id DESC
-            LIMIT 100
-        """)
+    """Get recent network analytics events from database
 
-        # Collect unique source IPs for batch hostname resolution
-        unique_ips = set(row['source_ip'] for row in rows if row['source_ip'])
+    Query params:
+    - filter: 'all' (default), 'when_protected' (GOLINE IPs only)
+    - limit: number of events (default 100)
+    - source: 'all' (default), 'graphql', 'webhooks'
+    """
+    try:
+        filter_mode = request.args.get('filter', 'all')
+        source_mode = request.args.get('source', 'all')
+        limit = min(int(request.args.get('limit', 100)), 500)  # Max 500
+
+        rows = []
+
+        # Get events from network_analytics_events (GraphQL source)
+        if source_mode in ('all', 'graphql'):
+            if filter_mode == 'when_protected':
+                graphql_rows = query_db("""
+                    SELECT 'graphql_' || id as id, event_datetime, attack_id, attack_vector, rule_name,
+                           source_ip, colo_country, destination_ip, destination_port,
+                           protocol, packets, bits, outcome, notified_at, 'graphql' as source
+                    FROM network_analytics_events
+                    WHERE destination_ip LIKE '185.54.%'
+                       OR destination_ip LIKE '2a02:4460:%'
+                    ORDER BY network_analytics_events.id DESC
+                    LIMIT ?
+                """, (limit,))
+            else:
+                graphql_rows = query_db("""
+                    SELECT 'graphql_' || id as id, event_datetime, attack_id, attack_vector, rule_name,
+                           source_ip, colo_country, destination_ip, destination_port,
+                           protocol, packets, bits, outcome, notified_at, 'graphql' as source
+                    FROM network_analytics_events
+                    ORDER BY network_analytics_events.id DESC
+                    LIMIT ?
+                """, (limit,))
+            rows.extend(graphql_rows or [])
+
+        # Get events from attack_events (Webhook source) - includes IPv6
+        if source_mode in ('all', 'webhooks'):
+            if filter_mode == 'when_protected':
+                webhook_rows = query_db("""
+                    SELECT 'webhook_' || id as id, created_at as event_datetime, attack_id, attack_vector,
+                           policy_name as rule_name, 'N/A (MNM)' as source_ip, '🌐' as colo_country,
+                           COALESCE(target_ip, prefix) as destination_ip, target_port as destination_port,
+                           protocol, CAST(REPLACE(packets_per_second, ',', '') AS INTEGER) as packets,
+                           CAST(COALESCE(megabits_per_second, '0') AS REAL) * 1000000 as bits,
+                           'drop' as outcome, created_at as notified_at, 'webhook' as source
+                    FROM attack_events
+                    WHERE event_type = 'START'
+                      AND (prefix LIKE '185.54.%' OR prefix LIKE '2a02:4460:%'
+                           OR target_ip LIKE '185.54.%' OR target_ip LIKE '2a02:4460:%')
+                    ORDER BY attack_events.id DESC
+                    LIMIT ?
+                """, (limit,))
+            else:
+                webhook_rows = query_db("""
+                    SELECT 'webhook_' || id as id, created_at as event_datetime, attack_id, attack_vector,
+                           policy_name as rule_name, 'N/A (MNM)' as source_ip, '🌐' as colo_country,
+                           COALESCE(target_ip, prefix) as destination_ip, target_port as destination_port,
+                           protocol, CAST(REPLACE(packets_per_second, ',', '') AS INTEGER) as packets,
+                           CAST(COALESCE(megabits_per_second, '0') AS REAL) * 1000000 as bits,
+                           'drop' as outcome, created_at as notified_at, 'webhook' as source
+                    FROM attack_events
+                    WHERE event_type = 'START'
+                    ORDER BY attack_events.id DESC
+                    LIMIT ?
+                """, (limit,))
+            rows.extend(webhook_rows or [])
+
+        # Sort combined results by event_datetime descending
+        # Normalize datetime format for proper sorting (GraphQL: 2026-02-02T01:26:52Z, Webhook: 2026-02-02 08:53:30)
+        def normalize_datetime(dt):
+            if not dt:
+                return ''
+            # Convert both formats to comparable string: YYYY-MM-DD HH:MM:SS
+            return dt.replace('T', ' ').replace('Z', '').strip()
+
+        rows = sorted(rows, key=lambda x: normalize_datetime(x['event_datetime']), reverse=True)[:limit]
+
+        # Collect unique source IPs for batch hostname resolution (skip N/A placeholders)
+        unique_ips = set(row['source_ip'] for row in rows if row['source_ip'] and not row['source_ip'].startswith('N/A'))
 
         # Resolve hostnames in parallel with cache (graceful timeout handling)
         hostname_cache = {}
@@ -683,6 +820,143 @@ def api_analytics_detail(analytics_id):
             "mitigation_reason": row['mitigation_reason'],
             "notified_at": notified_at
         }
+
+        return jsonify({"success": True, "event": event})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/analytics/detail/<event_id>')
+@login_required
+def api_analytics_detail_composite(event_id):
+    """Get detailed information for a network analytics event (supports composite IDs)
+
+    Handles both:
+    - graphql_123 -> queries network_analytics_events table
+    - webhook_456 -> queries attack_events table
+    """
+    try:
+        if event_id.startswith('graphql_'):
+            # GraphQL event from network_analytics_events
+            numeric_id = int(event_id.replace('graphql_', ''))
+            row = query_db("""
+                SELECT id, event_hash, attack_id, event_datetime, attack_vector,
+                       rule_name, rule_id, source_ip, source_port,
+                       source_asn, source_asn_name, source_country,
+                       destination_ip, destination_port, protocol, tcp_flags,
+                       colo_code, colo_country, packets, bits, outcome,
+                       mitigation_reason, notified_at, raw_data
+                FROM network_analytics_events
+                WHERE id = ?
+            """, (numeric_id,), one=True)
+
+            if not row:
+                return jsonify({"success": False, "error": "Event not found"}), 404
+
+            # Parse raw_data for additional fields
+            colo_city = None
+            verdict = None
+            if row['raw_data']:
+                try:
+                    raw_data = json.loads(row['raw_data'])
+                    if isinstance(raw_data, dict):
+                        dimensions = raw_data.get('dimensions', {})
+                        colo_city = dimensions.get('coloCity')
+                        verdict = dimensions.get('verdict')
+                except json.JSONDecodeError:
+                    pass
+
+            bits = row['bits'] or 0
+            packets = row['packets'] or 0
+
+            event = {
+                "id": event_id,
+                "source": "graphql",
+                "event_datetime": row['event_datetime'],
+                "attack_id": row['attack_id'],
+                "attack_vector": row['attack_vector'],
+                "rule_name": row['rule_name'],
+                "rule_id": row['rule_id'],
+                "source_ip": row['source_ip'],
+                "source_hostname": resolve_hostname(row['source_ip']) if row['source_ip'] else '',
+                "source_port": row['source_port'],
+                "source_asn": row['source_asn'],
+                "source_asn_name": row['source_asn_name'],
+                "source_country": row['source_country'],
+                "destination_ip": row['destination_ip'],
+                "destination_port": row['destination_port'],
+                "protocol": row['protocol'],
+                "tcp_flags": row['tcp_flags'],
+                "colo_code": row['colo_code'],
+                "colo_country": row['colo_country'],
+                "colo_city": colo_city,
+                "packets": packets,
+                "bits": bits,
+                "mbps": round(bits / 1_000_000, 2) if bits else 0,
+                "kpps": round(packets / 1000, 2) if packets else 0,
+                "outcome": row['outcome'],
+                "verdict": verdict,
+                "mitigation_reason": row['mitigation_reason'],
+                "notified_at": row['notified_at']
+            }
+
+        elif event_id.startswith('webhook_'):
+            # Webhook event from attack_events
+            numeric_id = int(event_id.replace('webhook_', ''))
+            row = query_db("""
+                SELECT id, event_type, alert_type, attack_id, policy_id, policy_name,
+                       prefix, target_ip, target_port, protocol, attack_vector,
+                       packets_per_second, megabits_per_second, severity,
+                       action_taken, raw_payload, created_at
+                FROM attack_events
+                WHERE id = ?
+            """, (numeric_id,), one=True)
+
+            if not row:
+                return jsonify({"success": False, "error": "Event not found"}), 404
+
+            # Parse packets and bits
+            packets = 0
+            if row['packets_per_second']:
+                try:
+                    packets = int(str(row['packets_per_second']).replace(',', ''))
+                except (ValueError, TypeError):
+                    pass
+
+            bits = 0
+            if row['megabits_per_second']:
+                try:
+                    bits = float(row['megabits_per_second']) * 1_000_000
+                except (ValueError, TypeError):
+                    pass
+
+            event = {
+                "id": event_id,
+                "source": "webhook",
+                "event_datetime": row['created_at'],
+                "event_type": row['event_type'],
+                "alert_type": row['alert_type'],
+                "attack_id": row['attack_id'],
+                "attack_vector": row['attack_vector'],
+                "policy_id": row['policy_id'],
+                "policy_name": row['policy_name'],
+                "rule_name": row['policy_name'],
+                "source_ip": "N/A (MNM)",
+                "source_hostname": "",
+                "source_country": "🌐",
+                "destination_ip": row['target_ip'] or row['prefix'],
+                "destination_port": row['target_port'],
+                "protocol": row['protocol'],
+                "packets": packets,
+                "bits": bits,
+                "mbps": round(bits / 1_000_000, 2) if bits else 0,
+                "kpps": round(packets / 1000, 2) if packets else 0,
+                "outcome": "drop",
+                "severity": row['severity'],
+                "action_taken": row['action_taken'],
+                "notified_at": row['created_at']
+            }
+        else:
+            return jsonify({"success": False, "error": "Invalid event ID format"}), 400
 
         return jsonify({"success": True, "event": event})
     except Exception as e:
@@ -1652,6 +1926,79 @@ def api_stats():
                 "analytics_24h": recent_analytics['count'] if recent_analytics else 0
             },
             "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/dashboard-prefs', methods=['GET'])
+@login_required
+def api_get_dashboard_prefs():
+    """Get dashboard preferences"""
+    try:
+        prefs = load_dashboard_prefs()
+        return jsonify({"success": True, "prefs": prefs})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/dashboard-prefs', methods=['POST'])
+@login_required
+def api_set_dashboard_prefs():
+    """Save dashboard preferences"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        # Load existing and merge
+        prefs = load_dashboard_prefs()
+        prefs.update(data)
+
+        if save_dashboard_prefs(prefs):
+            return jsonify({"success": True, "prefs": prefs})
+        else:
+            return jsonify({"success": False, "error": "Failed to save preferences"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/analytics-summary')
+@login_required
+def api_analytics_summary():
+    """Get analytics summary stats for collapsed view"""
+    try:
+        # Total count
+        total = query_db("SELECT COUNT(*) as count FROM network_analytics_events", one=True)
+
+        # Recent count (24h)
+        recent = query_db(
+            "SELECT COUNT(*) as count FROM network_analytics_events WHERE notified_at > datetime('now', '-24 hours')",
+            one=True
+        )
+
+        # Count GOLINE-direct events (excludes Cloudflare anycast)
+        rows = query_db("""
+            SELECT destination_ip FROM network_analytics_events
+            ORDER BY id DESC LIMIT 500
+        """)
+        goline_count = 0
+        for row in rows:
+            if is_goline_destination(row['destination_ip']):
+                goline_count += 1
+
+        # Latest event time
+        latest = query_db(
+            "SELECT event_datetime FROM network_analytics_events ORDER BY id DESC LIMIT 1",
+            one=True
+        )
+
+        return jsonify({
+            "success": True,
+            "summary": {
+                "total_events": total['count'] if total else 0,
+                "events_24h": recent['count'] if recent else 0,
+                "goline_events": goline_count,
+                "latest_event": latest['event_datetime'] if latest else None,
+                "has_goline_filter": True
+            }
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

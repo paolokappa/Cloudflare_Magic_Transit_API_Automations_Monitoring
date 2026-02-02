@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.9.22</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.10.1</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.9.22-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.10.1-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -32,22 +32,29 @@
 
 ---
 
-## 🆕 What's New in v2.9.22
+## 🆕 What's New in v2.10.1
 
-### DNS Timeout Graceful Handling (v2.9.22)
-- **BUG FIX**: "Error: 1 (of 70) futures unfinished" no longer displayed in Network Analytics
-- **Cause**: `as_completed(futures, timeout=5)` raised TimeoutError when DNS lookups didn't complete
-- **Fix**: Wrapped in try/except TimeoutError to continue with partial results
-- **Result**: Dashboard shows data even when some hostname resolutions timeout
+### IPv6 Attack Events Fix + Exact Timestamps (v2.10.1)
+- **BUG FIX**: IPv6 attacks not appearing in Network Analytics when "My prefixes only" toggle active
+  - Fixed SQL `ORDER BY` sorting by string alias instead of integer id
+  - Fixed timestamp format incompatibility in combined sorting
+- **NEW**: Exact timestamps in Network Analytics and Recent Attacks tables
+  - Format: `HH:MM (Xh ago)` within 24h, `DD/MM HH:MM` for older events
+- **NEW**: "My prefixes only" toggle now controls Telegram notifications
+  - Toggle saves preference server-side (`config/dashboard_prefs.json`)
+  - Network Analytics Monitor reads this preference on each poll cycle
+- **FIX**: Event detail modal not opening on double-click (composite ID handling)
+- **CHANGED**: Toggle label renamed from "GOLINE only" to "My prefixes only"
 
-### Cloudflare Anycast Traffic Visibility (v1.3.10)
-- **NEW**: Network Analytics Monitor now shows traffic to Cloudflare anycast IPs
-- **Prefixes Added**: `162.159.0.0/16`, `172.64.0.0/13`, `104.16.0.0/13`
-- **Before**: Only showed traffic to direct GOLINE IPs (185.54.80.0/22)
-- **After**: Shows all DDoS mitigation events including Magic Transit pass-through
+### Dashboard Preference Sync (Network Analytics Monitor v1.4.0)
+- **NEW**: Reads "My prefixes only" toggle from dashboard preferences
+- **NEW**: Separate prefix lists (MY_PREFIXES vs ALL_PREFIXES)
+- **Dynamic**: Preference read on each poll - no service restart needed
 
-### Improved Prefix Constraint Messages (v2.9.21)
-- **Better UI**: Constraint messages now show Cloudflare attribution
+### Network Analytics Display Modes (v2.10.0)
+- **NEW**: Auto-collapse when all prefixes are withdrawn
+- **NEW**: "My prefixes only" toggle switch in card header
+- **NEW API**: `/api/analytics-summary`, `/api/dashboard-prefs`
   - During cooldown: `⏱️ Can advertise in X.X min (Cloudflare API cooldown)`
   - When ready: `✅ Ready to advertise`
 - **Fix**: Backend returns updated state in advertise/withdraw response

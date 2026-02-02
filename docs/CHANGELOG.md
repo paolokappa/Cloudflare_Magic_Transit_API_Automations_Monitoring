@@ -2,8 +2,59 @@
 
 All notable changes to the Cloudflare Magic Transit Integration project.
 
-**Current Version**: 2.9.22
+**Current Version**: 2.10.1
 **Last Updated**: 2026-02-02
+
+---
+
+## [2.10.1] - 2026-02-02
+
+### Web Dashboard v2.10.1
+- **BUG FIX**: IPv6 attacks not appearing in Network Analytics when "GOLINE only" toggle active
+  - **CAUSE 1**: SQL `ORDER BY id DESC` sorted by string alias instead of integer id
+  - **CAUSE 2**: Combined sorting used incompatible timestamp formats (T vs space separator)
+  - **FIX 1**: Changed to `ORDER BY table_name.id DESC` for proper integer sorting
+  - **FIX 2**: Added `normalize_datetime()` function for consistent timestamp comparison
+- **NEW**: Exact timestamps in Network Analytics and Recent Attacks tables
+  - Format: `HH:MM (Xh ago)` within 24h, `DD/MM HH:MM` for older events
+- **NEW**: MNM webhook events show meaningful placeholders
+  - Source IP: "N/A (MNM)" instead of empty "-"
+  - Country: "🌐" globe emoji
+  - Note: Cloudflare MNM webhooks don't include attacker source IP (API limitation)
+- **FIX**: Event detail modal not opening on double-click
+  - Cause: Composite string IDs ("webhook_117", "graphql_1219") passed unquoted
+  - New API endpoint: `/api/analytics/detail/<event_id>` handles both formats
+- **NEW**: "My prefixes only" toggle now controls Telegram notifications
+  - Toggle saves preference to `config/dashboard_prefs.json`
+  - Network Analytics Monitor (v1.4.0) reads this preference
+  - ON: Only notify for traffic to your prefixes
+  - OFF: Notify for all traffic including Cloudflare anycast
+- **CHANGED**: Toggle label renamed from "GOLINE only" to "My prefixes only"
+
+### Network Analytics Monitor v1.4.0
+- **NEW**: Dashboard Preference Sync - reads "My prefixes only" toggle
+- **NEW**: Separate MY_PREFIXES and ALL_PREFIXES lists
+- **NEW**: `is_notifiable_ip()` checks against current preference
+- **Preference read on each poll** - no service restart needed
+
+---
+
+## [2.10.0] - 2026-02-02
+
+### Web Dashboard v2.10.0
+- **NEW**: Auto-collapse when all prefixes are withdrawn
+  - Shows summary view with total events, 24h events, GOLINE direct count
+  - "Show Historical Events" button to expand full table
+- **NEW**: "GOLINE only" toggle switch in Network Analytics card header
+  - ON: Shows only traffic to GOLINE IPs
+  - OFF: Shows all traffic including Cloudflare anycast
+  - Toggle state persisted in localStorage
+- **NEW API endpoints**:
+  - `GET /api/analytics-summary` - Summary stats for collapsed view
+  - `GET /api/dashboard-prefs` - Load dashboard preferences
+  - `POST /api/dashboard-prefs` - Save dashboard preferences
+- **CHANGED**: `/api/analytics?filter=when_protected` now filters by GOLINE destination IP
+- **Config file**: `config/dashboard_prefs.json` for server-side preferences
 
 ---
 

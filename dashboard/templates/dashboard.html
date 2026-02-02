@@ -457,6 +457,115 @@
             white-space: nowrap;
         }
 
+        /* Analytics Toggle Switch */
+        .analytics-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-tertiary);
+            transition: 0.3s;
+            border-radius: 20px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--accent-blue);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(16px);
+        }
+
+        .toggle-label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Analytics Collapsed View */
+        .analytics-collapsed {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .analytics-collapsed-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .analytics-collapsed-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .analytics-collapsed-stats {
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .analytics-collapsed-stats span {
+            display: inline-block;
+            margin: 0 0.5rem;
+        }
+
+        .btn-show-analytics {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .btn-show-analytics:hover {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
         .card-body {
             padding: 1rem;
             max-height: 400px;
@@ -1969,6 +2078,15 @@
                         </div>
                         <span class="card-description">Traffic blocked by Cloudflare DDoS protection (dropped packets and bits)</span>
                     </div>
+                    <div class="analytics-controls">
+                        <div class="toggle-container" title="When enabled, shows only traffic to your prefixes, excluding Cloudflare anycast">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="analytics-filter-toggle" onchange="toggleAnalyticsFilter()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label" onclick="document.getElementById('analytics-filter-toggle').click()">My prefixes only</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body" id="analytics-content">
                     <div class="loading">
@@ -2295,17 +2413,38 @@
             });
         }
 
-        // Format relative time
-        function formatRelative(timestamp) {
+        // Format relative time with exact timestamp
+        function formatRelative(timestamp, showExact = false) {
             if (!timestamp) return '-';
             const date = new Date(timestamp);
             const now = new Date();
             const diff = Math.floor((now - date) / 1000);
 
-            if (diff < 60) return `${diff}s ago`;
-            if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-            if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-            return `${Math.floor(diff/86400)}d ago`;
+            // Format exact time as HH:MM (local time)
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const exactTime = `${hours}:${minutes}`;
+
+            // Format date as DD/MM
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const exactDate = `${day}/${month}`;
+
+            let relative;
+            if (diff < 60) relative = `${diff}s ago`;
+            else if (diff < 3600) relative = `${Math.floor(diff/60)}m ago`;
+            else if (diff < 86400) relative = `${Math.floor(diff/3600)}h ago`;
+            else relative = `${Math.floor(diff/86400)}d ago`;
+
+            // For events, show "HH:MM (Xh ago)" format
+            if (showExact || diff >= 3600) {
+                // If more than 24h ago, include date
+                if (diff >= 86400) {
+                    return `${exactDate} ${exactTime}`;
+                }
+                return `${exactTime} (${relative})`;
+            }
+            return relative;
         }
 
         // Format bits rate (bps)
@@ -2697,7 +2836,7 @@
 
                 html += `
                     <tr class="attack-row" data-id="${attack.id}" ondblclick="showAttackDetail(${attack.id})" title="Double-click for details">
-                        <td class="timestamp">${formatRelative(attack.timestamp)}</td>
+                        <td class="timestamp">${formatRelative(attack.timestamp, true)}</td>
                         <td><span class="badge ${eventFormat.badgeClass}">${eventFormat.label}</span></td>
                         <td class="ip-mono">${attack.prefix || '-'}</td>
                         <td class="truncate" title="${attack.alert_type || ''}">${formatAlertType(attack.alert_type)}</td>
@@ -2710,18 +2849,98 @@
             container.innerHTML = html;
         }
 
-        // Load Analytics
-        async function loadAnalytics() {
-            const data = await fetchAPI('/api/analytics');
-            const container = document.getElementById('analytics-content');
+        // Analytics preferences storage key
+        const ANALYTICS_PREFS_KEY = 'cloudflare_analytics_prefs';
 
-            if (!data.success) {
-                container.innerHTML = `<div class="error">Error: ${data.error}</div>`;
-                return;
+        // Load analytics preferences from localStorage
+        function loadAnalyticsPrefs() {
+            try {
+                const saved = localStorage.getItem(ANALYTICS_PREFS_KEY);
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (e) {}
+            return {
+                filterProtectedOnly: false,
+                forceShowWhenWithdrawn: false
+            };
+        }
+
+        // Save analytics preferences to localStorage
+        function saveAnalyticsPrefs(prefs) {
+            try {
+                localStorage.setItem(ANALYTICS_PREFS_KEY, JSON.stringify(prefs));
+            } catch (e) {}
+        }
+
+        // Toggle analytics filter
+        async function toggleAnalyticsFilter() {
+            const toggle = document.getElementById('analytics-filter-toggle');
+            const prefs = loadAnalyticsPrefs();
+            prefs.filterProtectedOnly = toggle.checked;
+            // When user interacts with toggle, force show the table (bypass auto-collapse)
+            prefs.forceShowWhenWithdrawn = true;
+            saveAnalyticsPrefs(prefs);
+
+            // Also save server-side for Network Analytics Monitor notifications
+            try {
+                await fetch(`${API_BASE}/api/dashboard-prefs`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({my_prefixes_only: toggle.checked})
+                });
+            } catch (e) {
+                console.error('Failed to save server preference:', e);
             }
 
-            if (data.events.length === 0) {
-                container.innerHTML = '<div class="loading">No analytics events recorded</div>';
+            loadAnalytics();
+        }
+
+        // Show all events (bypass auto-collapse)
+        function showAllAnalytics() {
+            const prefs = loadAnalyticsPrefs();
+            prefs.forceShowWhenWithdrawn = true;
+            saveAnalyticsPrefs(prefs);
+            loadAnalytics();
+        }
+
+        // Render collapsed analytics view
+        function renderAnalyticsCollapsed(summary) {
+            const container = document.getElementById('analytics-content');
+            const totalEvents = summary.total_events || 0;
+            const events24h = summary.events_24h || 0;
+            const golineEvents = summary.goline_events || 0;
+
+            container.innerHTML = `
+                <div class="analytics-collapsed">
+                    <div class="analytics-collapsed-icon">📊</div>
+                    <div class="analytics-collapsed-title">Monitoring Paused</div>
+                    <div class="analytics-collapsed-stats">
+                        All prefixes are withdrawn - traffic goes direct to origin.
+                    </div>
+                    <div class="analytics-collapsed-stats">
+                        <span>📁 <strong>${totalEvents}</strong> total events</span>
+                        <span>🕐 <strong>${events24h}</strong> last 24h</span>
+                        <span>🎯 <strong>${golineEvents}</strong> GOLINE direct</span>
+                    </div>
+                    <button class="btn-show-analytics" onclick="showAllAnalytics()">
+                        Show Historical Events →
+                    </button>
+                </div>
+            `;
+        }
+
+        // Render analytics table
+        function renderAnalyticsTable(events) {
+            const container = document.getElementById('analytics-content');
+
+            if (events.length === 0) {
+                const prefs = loadAnalyticsPrefs();
+                if (prefs.filterProtectedOnly) {
+                    container.innerHTML = '<div class="loading">No events targeting your prefixes</div>';
+                } else {
+                    container.innerHTML = '<div class="loading">No analytics events recorded</div>';
+                }
                 return;
             }
 
@@ -2743,10 +2962,10 @@
                     <tbody>
             `;
 
-            data.events.slice(0, 20).forEach(event => {
+            events.slice(0, 20).forEach(event => {
                 html += `
-                    <tr class="analytics-row" data-id="${event.id}" ondblclick="showAnalyticsDetail(${event.id})" title="Double-click for details">
-                        <td class="timestamp">${formatRelative(event.event_datetime)}</td>
+                    <tr class="analytics-row" data-id="${event.id}" ondblclick="showAnalyticsDetail('${event.id}')" title="Double-click for details">
+                        <td class="timestamp">${formatRelative(event.event_datetime, true)}</td>
                         <td><span class="badge badge-warning">${event.attack_vector || '-'}</span></td>
                         <td class="ip-mono">${event.source_ip || '-'}</td>
                         <td class="hostname-cell">${event.source_hostname || '-'}</td>
@@ -2761,6 +2980,33 @@
 
             html += '</tbody></table>';
             container.innerHTML = html;
+        }
+
+        // Load Analytics
+        async function loadAnalytics() {
+            const container = document.getElementById('analytics-content');
+            const prefs = loadAnalyticsPrefs();
+
+            // Sync toggle state with preferences
+            const toggle = document.getElementById('analytics-filter-toggle');
+            if (toggle) {
+                toggle.checked = prefs.filterProtectedOnly;
+            }
+
+            // Build API URL with filter parameter
+            let apiUrl = '/api/analytics';
+            if (prefs.filterProtectedOnly) {
+                apiUrl += '?filter=when_protected';
+            }
+
+            const data = await fetchAPI(apiUrl);
+
+            if (!data.success) {
+                container.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                return;
+            }
+
+            renderAnalyticsTable(data.events);
         }
 
         // Global storage for MNM rules data
@@ -4152,7 +4398,7 @@
             content.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading details...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/api/analytics/${analyticsId}`);
+                const response = await fetch(`${API_BASE}/api/analytics/detail/${analyticsId}`);
                 const data = await response.json();
 
                 if (!data.success) {

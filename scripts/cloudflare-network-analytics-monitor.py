@@ -6,10 +6,11 @@ Monitors DDoS mitigation events from Network Analytics and sends Telegram notifi
 This script queries the GraphQL API for dropped traffic events that may not trigger
 standard webhook notifications, ensuring all mitigation events are tracked.
 
-Version: 1.3.10
+Version: 1.4.0
 Author: GOLINE SOC
 
 Changelog:
+  v1.4.0 (2026-02-02): "My prefixes only" toggle now controls Telegram notifications - reads preference from dashboard_prefs.json
   v1.3.10 (2026-02-02): Added Cloudflare anycast prefixes (162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13) to show Magic Transit pass-through traffic
   v1.3.9 (2026-01-22): Changed "no events" log from DEBUG to INFO for better polling visibility
   v1.3.8 (2026-01-21): Enhanced startup message with BGP status, attack history, services health
@@ -63,6 +64,7 @@ _shutdown_requested = False
 # Paths
 PROJECT_DIR = Path("/root/Cloudflare_MT_Integration")
 CONFIG_FILE = PROJECT_DIR / "config/settings.json"
+DASHBOARD_PREFS_FILE = PROJECT_DIR / "config/dashboard_prefs.json"
 DB_PATH = PROJECT_DIR / "db/magic_transit.db"
 LOG_DIR = PROJECT_DIR / "logs"
 LOG_FILE = LOG_DIR / "network-analytics-monitor.log"
@@ -77,28 +79,57 @@ LOOKBACK_MINUTES = 15
 # Minimum packets to consider an event significant
 MIN_PACKETS_THRESHOLD = 1
 
-# GOLINE prefix filter - only notify for traffic to these prefixes
-# This filters out Cloudflare anycast IPs (162.159.x.x, 172.64.x.x, etc.)
-GOLINE_PREFIXES = [
+# Prefix filters for notifications
+# MY_PREFIXES: Only user's own prefixes (when "My prefixes only" toggle is ON)
+MY_PREFIXES = [
     ipaddress.ip_network('185.54.80.0/22'),   # All GOLINE IPv4 (80, 81, 82, 83)
     ipaddress.ip_network('2a02:4460::/32'),   # GOLINE IPv6
-    # Cloudflare anycast ranges (Magic Transit traffic)
+]
+
+# ALL_PREFIXES: User's prefixes + Cloudflare anycast (when toggle is OFF)
+ALL_PREFIXES = MY_PREFIXES + [
     ipaddress.ip_network('162.159.0.0/16'),   # Cloudflare anycast
     ipaddress.ip_network('172.64.0.0/13'),    # Cloudflare anycast
     ipaddress.ip_network('104.16.0.0/13'),    # Cloudflare anycast
 ]
 
-def is_goline_ip(ip_str: str) -> bool:
-    """Check if an IP address belongs to GOLINE prefixes."""
+def load_dashboard_prefs() -> dict:
+    """Load dashboard preferences to check notification filter setting."""
+    default_prefs = {"my_prefixes_only": True}
+    try:
+        if DASHBOARD_PREFS_FILE.exists():
+            with open(DASHBOARD_PREFS_FILE, 'r') as f:
+                prefs = json.load(f)
+                return prefs
+        return default_prefs
+    except Exception:
+        return default_prefs
+
+def get_notification_prefixes() -> list:
+    """Get the list of prefixes to notify for based on dashboard preference."""
+    prefs = load_dashboard_prefs()
+    # Check for the toggle setting (default: my prefixes only)
+    if prefs.get('my_prefixes_only', True):
+        return MY_PREFIXES
+    return ALL_PREFIXES
+
+def is_notifiable_ip(ip_str: str) -> bool:
+    """Check if an IP address should trigger a notification based on current preference."""
     try:
         ip = ipaddress.ip_address(ip_str)
-        for prefix in GOLINE_PREFIXES:
+        prefixes = get_notification_prefixes()
+        for prefix in prefixes:
             if ip in prefix:
                 return True
         return False
     except ValueError:
         # Invalid IP address
         return False
+
+# Legacy function for compatibility
+def is_goline_ip(ip_str: str) -> bool:
+    """Check if an IP address belongs to any monitored prefixes."""
+    return is_notifiable_ip(ip_str)
 
 # GeoIP2 database paths (commercial first, then free/lite fallback)
 GEOIP_CITY_DB_PATHS = [

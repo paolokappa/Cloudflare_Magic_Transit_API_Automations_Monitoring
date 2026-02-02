@@ -1,6 +1,6 @@
 # Network Analytics Monitor
 
-**Version**: 1.3.10
+**Version**: 1.4.0
 **Last Updated**: 2026-02-02
 
 ## Overview
@@ -10,8 +10,9 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 ### Key Features
 
 - **GraphQL Polling**: Queries `dosdNetworkAnalyticsAdaptiveGroups` every 5 minutes
-- **Destination Filter**: Notifies for GOLINE prefixes AND Cloudflare anycast (Magic Transit pass-through)
-- **Cloudflare Anycast**: Includes 162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13
+- **Dashboard Preference Sync**: Reads "My prefixes only" toggle from dashboard to control notifications
+- **Destination Filter**: Notifies for GOLINE prefixes AND/OR Cloudflare anycast based on preference
+- **Cloudflare Anycast**: Includes 162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13 (when filter disabled)
 - **GeoIP2 Enrichment**: Source IPs show country, city, and ASN information
 - **GeoIP Fallback**: Supports both commercial (GeoIP2) and free (GeoLite2) databases
 - **Spoofed IP Detection**: Identifies private/reserved IPs with ⚠️ indicator
@@ -25,7 +26,7 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                  NETWORK ANALYTICS MONITOR v1.3.10               │
+│                  NETWORK ANALYTICS MONITOR v1.4.0                │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  Cloudflare GraphQL API                                          │
@@ -63,6 +64,7 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 | Systemd Service | `/etc/systemd/system/cloudflare-analytics-monitor.service` |
 | Log File | `/root/Cloudflare_MT_Integration/logs/network-analytics-monitor.log` |
 | Database | `/root/Cloudflare_MT_Integration/db/magic_transit.db` |
+| Dashboard Prefs | `/root/Cloudflare_MT_Integration/config/dashboard_prefs.json` |
 | GeoIP City | `/usr/share/GeoIP/GeoIP2-City.mmdb` |
 | GeoIP ASN | `/usr/share/GeoIP/GeoLite2-ASN.mmdb` |
 
@@ -86,6 +88,41 @@ The Network Analytics Monitor queries the Cloudflare GraphQL API to detect DDoS 
 
 **Why include Cloudflare anycast?**
 When Magic Transit is active, some attacks target Cloudflare anycast IPs directly (e.g., 162.159.76.173). These are still attacks against GOLINE infrastructure being mitigated by Cloudflare. Including these prefixes ensures complete visibility of all DDoS mitigation events.
+
+### Dashboard Preference Integration
+
+The monitor reads the "My prefixes only" toggle state from the dashboard preferences file:
+
+| File | Path |
+|------|------|
+| Dashboard Prefs | `config/dashboard_prefs.json` |
+
+**Preference Format:**
+```json
+{"my_prefixes_only": true}
+```
+
+**Behavior:**
+| Setting | Notifications For |
+|---------|-------------------|
+| `my_prefixes_only: true` | Only GOLINE prefixes (185.54.x.x, 2a02:4460:x) |
+| `my_prefixes_only: false` | All traffic including Cloudflare anycast |
+
+**Prefix Lists:**
+```python
+MY_PREFIXES = [
+    '185.54.80.0/22',    # GOLINE IPv4
+    '2a02:4460::/32',    # GOLINE IPv6
+]
+
+ALL_PREFIXES = MY_PREFIXES + [
+    '162.159.0.0/16',    # Cloudflare anycast
+    '172.64.0.0/13',     # Cloudflare anycast
+    '104.16.0.0/13',     # Cloudflare anycast
+]
+```
+
+**Note:** The preference is read on each poll cycle (every 5 minutes), so changes take effect without restarting the service.
 
 ---
 
@@ -417,6 +454,21 @@ tail -100 logs/network-analytics-monitor.log
 ---
 
 ## Changelog
+
+### v1.4.0 (2026-02-02)
+- **Dashboard Preference Sync** - Reads "My prefixes only" toggle from dashboard
+  - New file: `config/dashboard_prefs.json` stores user preference
+  - Toggle ON: Only notify for GOLINE prefixes (185.54.x.x, 2a02:4460:x)
+  - Toggle OFF: Notify for all traffic including Cloudflare anycast
+  - Preference read on each poll (no restart needed)
+- **Prefix list split** - Separate MY_PREFIXES and ALL_PREFIXES lists
+- **Dynamic filtering** - `is_notifiable_ip()` checks against current preference
+
+### v1.3.10 (2026-02-02)
+- **Cloudflare Anycast Visibility** - Added Cloudflare anycast prefixes to destination filter
+  - New prefixes: 162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13
+  - Shows Magic Transit pass-through traffic
+  - Complete visibility of all DDoS mitigation events
 
 ### v1.3.8 (2026-01-21)
 - **Removed System section** from startup message (hostname, uptime, Python version)

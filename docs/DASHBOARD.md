@@ -1,6 +1,6 @@
 # Cloudflare Magic Transit Dashboard
 
-**Version**: 2.9.22
+**Version**: 2.10.1
 **Created**: 2026-01-20
 **Last Updated**: 2026-02-02
 **Author**: GOLINE SOC
@@ -11,7 +11,62 @@
 
 Real-time web dashboard for monitoring Cloudflare Magic Transit infrastructure. Provides visibility into BGP prefix status, DDoS attack events, network analytics, MNM rules, and service health.
 
-### Recent Changes (v2.9.22)
+### Recent Changes (v2.10.1)
+
+- **IPv6 Attack Events Fix**:
+  - **BUG FIXED**: IPv6 attacks not appearing in Network Analytics when "GOLINE only" toggle active
+  - **CAUSE 1**: SQL `ORDER BY id DESC` was sorting by the string alias `"webhook_" || id` instead of the integer id
+  - **CAUSE 2**: Combined sorting used string comparison on timestamps with different formats:
+    - GraphQL: `2026-02-02T01:26:52Z` (with 'T' and 'Z')
+    - Webhook: `2026-02-02 08:53:30` (with space)
+    - In string comparison, 'T' > ' ', so 01:26 incorrectly sorted after 08:53
+  - **FIX 1**: Changed to `ORDER BY attack_events.id DESC` and `ORDER BY network_analytics_events.id DESC`
+  - **FIX 2**: Added `normalize_datetime()` function to convert both formats to comparable strings
+  - **Result**: IPv6 UDP Flood attacks now display correctly in chronological order
+
+- **Exact Timestamps Display**:
+  - **CHANGED**: Network Analytics and Recent Attacks now show exact time instead of just "Xh ago"
+  - **Format**: `HH:MM (Xh ago)` for events within 24h, `DD/MM HH:MM` for older events
+  - **Reason**: User requested exact timestamps for better incident tracking
+
+- **MNM Webhook Events Indicator**:
+  - **CHANGED**: Webhook events (MNM alerts) now show meaningful placeholders instead of empty "-"
+  - **Source IP**: Shows "N/A (MNM)" to indicate source info not available from Cloudflare MNM
+  - **Country**: Shows "🌐" globe emoji
+  - **Note**: Cloudflare MNM webhooks don't include attacker source IP - only GraphQL Network Analytics has that data (IPv4 only)
+
+- **Event Detail Modal Fix**:
+  - **BUG FIXED**: Double-click on Network Analytics events no longer opened detail modal
+  - **CAUSE**: Event IDs changed from integers to composite strings (e.g., "webhook_117", "graphql_1219")
+  - **FIX**: New API endpoint `/api/analytics/detail/<event_id>` handles both ID formats
+  - **FIX**: JavaScript ondblclick now passes ID as quoted string
+
+- **Toggle Controls Telegram Notifications**:
+  - **NEW**: "My prefixes only" toggle now also controls Network Analytics Monitor notifications
+  - **Server-side**: Preference saved to `config/dashboard_prefs.json` when toggle changes
+  - **Monitor v1.4.0**: Reads `my_prefixes_only` preference before sending Telegram notifications
+  - **ON**: Only notify for traffic to your prefixes (185.54.x.x, 2a02:4460:x)
+  - **OFF**: Notify for all traffic including Cloudflare anycast (162.159.x.x, 172.64.x.x)
+
+- **Toggle Label Renamed**:
+  - **CHANGED**: "GOLINE only" → "My prefixes only" (more generic for distribution)
+
+### Changes (v2.10.0)
+
+- **Network Analytics Display Modes**:
+  - **Auto-collapse when withdrawn**: When all prefixes are withdrawn, Network Analytics shows a collapsed view with summary stats instead of the full event table
+  - **"GOLINE only" toggle**: New toggle switch to filter events by destination:
+    - **ON**: Shows only traffic to GOLINE IPs (185.54.80.0/22, 2a02:4460::/32)
+    - **OFF**: Shows all traffic including Cloudflare anycast (162.159.x.x, 172.64.x.x, 104.16.x.x)
+  - **"Show Historical Events" button**: Allows viewing all events even when prefixes are withdrawn
+  - **Preferences persistence**: Display preferences saved to localStorage (per browser)
+  - **New API endpoints**:
+    - `GET /api/analytics-summary` - Returns summary stats for collapsed view
+    - `GET /api/dashboard-prefs` - Load dashboard preferences
+    - `POST /api/dashboard-prefs` - Save dashboard preferences
+  - **Filter parameter**: `/api/analytics?filter=when_protected` filters events by GOLINE destination
+
+### Changes (v2.9.22)
 
 - **DNS Timeout Graceful Handling**:
   - **BUG FIXED**: "Error: 1 (of 70) futures unfinished" in Network Analytics section
@@ -2219,18 +2274,19 @@ Access is restricted to authorized networks only:
 | Network | Description |
 |---------|-------------|
 | `127.0.0.1`, `::1` | Localhost |
-| `YOUR_IPV4_RANGE/22` | Your public IPv4 range |
-| `YOUR_IPV6_RANGE/32` | Your IPv6 range |
-| `ADMIN_IP_1` | Admin primary |
-| `ADMIN_IP_2` | Admin secondary |
-| `ADMIN_IPV6_1/64` | Admin IPv6 tunnel |
-| `ADMIN_IPV6_2/48` | Admin IPv6 routed |
-| `CLIENT_IP_1` | Client office 1 |
-| `CLIENT_IP_2` | Client office 2 |
-| `CLIENT_IP_3` | Client office 3 |
-| `CLIENT_IP_4` | Client office 4 |
-| `192.168.0.0/16` | Internal LAN (RFC1918) |
-| `172.16.0.0/12` | VPN ranges (RFC1918) |
+| `185.54.80.0/22` | GOLINE Networks |
+| `2a02:4460::/32` | GOLINE IPv6 |
+| `185.109.164.26` | Admin (Cadro) |
+| `213.193.119.162` | Admin secondary |
+| `2001:470:26:100::/64` | Admin HE tunnel |
+| `2001:470:b5b2::/48` | Admin HE routed |
+| `83.150.40.202` | Lily's Office |
+| `83.150.40.207` | Lily's Factory |
+| `83.150.42.99` | Lily's Original |
+| `185.160.244.194` | Lily's Maxim |
+| `192.168.220.0/22` | Internal LAN |
+| `192.168.1.0/24` | Internal LAN |
+| `172.27.224.0/24` | WireGuard VPN |
 
 ### Proxy Configuration
 
