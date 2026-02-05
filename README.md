@@ -34,22 +34,22 @@
 
 ## 🆕 What's New in v2.10.2
 
-### IPv6 Attack Events Fix + Exact Timestamps (v2.10.2)
-- **BUG FIX**: IPv6 attacks not appearing in Network Analytics when "My prefixes only" toggle active
-  - Fixed SQL `ORDER BY` sorting by string alias instead of integer id
-  - Fixed timestamp format incompatibility in combined sorting
-- **NEW**: Exact timestamps in Network Analytics and Recent Attacks tables
-  - Format: `HH:MM (Xh ago)` within 24h, `DD/MM HH:MM` for older events
-- **NEW**: "My prefixes only" toggle now controls Telegram notifications
-  - Toggle saves preference server-side (`config/dashboard_prefs.json`)
-  - Network Analytics Monitor reads this preference on each poll cycle
-- **FIX**: Event detail modal not opening on double-click (composite ID handling)
-- **CHANGED**: Toggle label renamed from "GOLINE only" to "My prefixes only"
+### Connector Health Indicator (v2.10.2)
+- **BUG FIX**: `/api/connectors/health-summary` always returned 500 error
+  - Fixed undefined `CF_API_BASE` variable
+  - Fixed wrong Cloudflare API response parsing (`result.gre_tunnels[]` not `result[]`)
+  - Fixed missing CNI interconnect health counting
+- **NEW**: "Status" pill indicator in dashboard header (next to Connectors button)
+  - Green dot: all connectors healthy
+  - Yellow dot: one or more connectors degraded
+  - Red dot: one or more connectors down
+- **FIX**: Connectors page health stats now combine tunnel + CNI interconnect counts
+- **CHANGED**: Unified degraded color to `#ffd000` (bright yellow) across all pages
 
-### Dashboard Preference Sync (Network Analytics Monitor v1.4.0)
-- **NEW**: Reads "My prefixes only" toggle from dashboard preferences
-- **NEW**: Separate prefix lists (MY_PREFIXES vs ALL_PREFIXES)
-- **Dynamic**: Preference read on each poll - no service restart needed
+### IPv6 Attack Events Fix + Exact Timestamps (v2.10.1)
+- **BUG FIX**: IPv6 attacks not appearing in Network Analytics when "My prefixes only" toggle active
+- **NEW**: Exact timestamps in Network Analytics and Recent Attacks tables
+- **NEW**: "My prefixes only" toggle now controls Telegram notifications
 
 ### Network Analytics Display Modes (v2.10.0)
 - **NEW**: Auto-collapse when all prefixes are withdrawn
