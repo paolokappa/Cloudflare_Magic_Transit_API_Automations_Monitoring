@@ -911,14 +911,13 @@ This project is provided as-is for educational and operational purposes.
 ## Author
 
 <p align="center">
+  <a href="https://www.goline.ch">
+    <img src="dashboard/static/images/Goline_500_160_trasparente.png" alt="GOLINE SA" width="250"/>
+  </a>
+</p>
+
+<p align="center">
   <strong>Paolo Caparrelli</strong><br/>
   <a href="https://www.goline.ch">GOLINE SA</a><br/>
   <em>Network Security & Infrastructure</em>
-</p>
-
----
-
-<p align="center">
-  <strong>Built for SOC Operations</strong><br/>
-  <em>Cloudflare Magic Transit On-Demand Integration</em>
 </p>
