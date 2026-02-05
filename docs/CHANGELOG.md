@@ -2,10 +2,35 @@
 
 All notable changes to the Cloudflare Magic Transit Integration project.
 
-**Current Version**: 2.10.1
-**Last Updated**: 2026-02-02
+**Current Version**: 2.10.2
+**Last Updated**: 2026-02-05
 
 ---
+
+## [2.10.2] - 2026-02-05
+
+### Web Dashboard v2.10.2 - Connector Health Indicator
+- **BUG FIX**: `/api/connectors/health-summary` always returned 500 error
+  - **CAUSE 1**: Used undefined variable `CF_API_BASE` (should be `API_BASE`)
+  - **CAUSE 2**: Parsed API response as `result[]` instead of `result.gre_tunnels[]` / `result.ipsec_tunnels[]`
+  - **CAUSE 3**: CNI interconnects were not included in health summary count
+  - **FIX**: Rewrote endpoint using same API call pattern as working `/api/connectors/tunnels`
+  - **FIX**: CNI health detected via remaining entries in GraphQL `health_stats` not matching any tunnel name
+- **NEW**: "Status" pill indicator in dashboard header (next to Connectors button)
+  - Styled identically to "Live" indicator (pill shape, same font/padding)
+  - Green dot: all connectors healthy
+  - Yellow dot (`#ffd000`): one or more connectors degraded
+  - Red dot: one or more connectors down
+  - Gray dot: status unknown
+  - Static dot (no blinking animation)
+- **CHANGED**: Connectors button restored to plain button style (no embedded dot)
+- **FIX**: Connectors page (`/connectors`) health stats now include CNI interconnects
+  - **BEFORE**: Healthy/Degraded/Down counters only counted GRE + IPsec tunnels
+  - **AFTER**: `loadTunnels()` and `loadInterconnects()` return health counts, combined in `refreshAll()`
+- **CHANGED**: Degraded color unified to `#ffd000` (bright yellow) across dashboard and connectors page
+  - Dashboard header Status indicator
+  - Connectors page `--accent-yellow` CSS variable
+  - Connectors page `.status-degraded` badge background
 
 ## [2.10.1] - 2026-02-02
 

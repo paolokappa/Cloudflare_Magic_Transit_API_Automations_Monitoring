@@ -3144,21 +3144,19 @@ def api_connectors_health_summary():
         degraded = 0
         down = 0
         total = 0
+        counted_names = set()
 
         # Get health stats from GraphQL
         health_stats = fetch_tunnel_health_stats()
 
         # Count GRE tunnels
-        gre_response = requests.get(
-            f'{CF_API_BASE}/accounts/{ACCOUNT_ID}/magic/gre_tunnels',
-            headers=HEADERS,
-            timeout=10
-        )
-        if gre_response.status_code == 200:
-            gre_tunnels = gre_response.json().get('result', [])
-            for tunnel in gre_tunnels:
+        gre_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/magic/gre_tunnels"
+        gre_data = requests.get(gre_url, headers=HEADERS, timeout=15).json()
+        if gre_data.get('success'):
+            for tunnel in gre_data.get('result', {}).get('gre_tunnels', []):
                 total += 1
                 tunnel_name = tunnel.get('name', '')
+                counted_names.add(tunnel_name)
                 stats = health_stats.get(tunnel_name, {})
                 if stats:
                     status = stats.get('status', 'unknown')
@@ -3173,16 +3171,13 @@ def api_connectors_health_summary():
                     down += 1
 
         # Count IPsec tunnels
-        ipsec_response = requests.get(
-            f'{CF_API_BASE}/accounts/{ACCOUNT_ID}/magic/ipsec_tunnels',
-            headers=HEADERS,
-            timeout=10
-        )
-        if ipsec_response.status_code == 200:
-            ipsec_tunnels = ipsec_response.json().get('result', [])
-            for tunnel in ipsec_tunnels:
+        ipsec_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/magic/ipsec_tunnels"
+        ipsec_data = requests.get(ipsec_url, headers=HEADERS, timeout=15).json()
+        if ipsec_data.get('success'):
+            for tunnel in ipsec_data.get('result', {}).get('ipsec_tunnels', []):
                 total += 1
                 tunnel_name = tunnel.get('name', '')
+                counted_names.add(tunnel_name)
                 stats = health_stats.get(tunnel_name, {})
                 if stats:
                     status = stats.get('status', 'unknown')
@@ -3190,6 +3185,18 @@ def api_connectors_health_summary():
                     status = 'healthy' if tunnel.get('health_check', {}).get('enabled') else 'unknown'
 
                 if status == 'healthy':
+                    healthy += 1
+                elif status == 'degraded':
+                    degraded += 1
+                elif status == 'down':
+                    down += 1
+
+        # Count CNI Interconnects - any health_stats entry not matching a tunnel is a CNI
+        for name, stats in health_stats.items():
+            if name not in counted_names:
+                total += 1
+                status = stats.get('status', 'unknown')
+                if status in ('healthy', 'active'):
                     healthy += 1
                 elif status == 'degraded':
                     degraded += 1

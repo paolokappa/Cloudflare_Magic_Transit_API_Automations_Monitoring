@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.10.1</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.10.2</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.10.1-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.10.2-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -32,9 +32,9 @@
 
 ---
 
-## 🆕 What's New in v2.10.1
+## 🆕 What's New in v2.10.2
 
-### IPv6 Attack Events Fix + Exact Timestamps (v2.10.1)
+### IPv6 Attack Events Fix + Exact Timestamps (v2.10.2)
 - **BUG FIX**: IPv6 attacks not appearing in Network Analytics when "My prefixes only" toggle active
   - Fixed SQL `ORDER BY` sorting by string alias instead of integer id
   - Fixed timestamp format incompatibility in combined sorting

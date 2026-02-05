@@ -1,8 +1,8 @@
 # Cloudflare Magic Transit Dashboard
 
-**Version**: 2.10.1
+**Version**: 2.10.2
 **Created**: 2026-01-20
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-05
 **Author**: GOLINE SOC
 
 ---
@@ -374,6 +374,7 @@ The password change modal requires:
 | `/connectors` | GET | Connectors page - IPsec/GRE Tunnels & CNI Interconnects (HTML) |
 | `/api/connectors/tunnels` | GET | GRE and IPsec tunnels from Cloudflare API |
 | `/api/connectors/interconnects` | GET | CNI Interconnects from Cloudflare API |
+| `/api/connectors/health-summary` | GET | Connector health summary for header Status indicator |
 | `/api/connectors/tunnel-health` | GET | Tunnel health from GraphQL API |
 | `/api/connectors/tunnel/<id>` | GET | Get single tunnel details (GRE or IPsec) |
 | `/api/connectors/tunnel/<id>/update` | POST | Update tunnel description (auto-detects type) |
@@ -1987,6 +1988,7 @@ Dedicated page for viewing IPsec/GRE Tunnels and CNI Network Interconnects statu
 |----------|--------|-------------|
 | `/api/connectors/tunnels` | GET | GRE and IPsec tunnels |
 | `/api/connectors/interconnects` | GET | CNI Interconnects |
+| `/api/connectors/health-summary` | GET | Connector health summary (overall status) |
 | `/api/connectors/tunnel-health` | GET | Tunnel health from GraphQL |
 | `/api/connectors/tunnel/<id>/update` | POST | Update tunnel description |
 | `/api/connectors/cni/<id>/update` | POST | Update CNI description |

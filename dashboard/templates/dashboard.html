@@ -904,19 +904,12 @@
             box-shadow: 0 3px 6px rgba(0,0,0,0.25);
         }
 
-        .connectors-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
         .connector-status-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: #888;
             display: inline-block;
-            animation: pulse 2s infinite;
         }
 
         .connector-status-dot.healthy {
@@ -924,7 +917,7 @@
         }
 
         .connector-status-dot.degraded {
-            background: var(--accent-orange);
+            background: #ffd000;
         }
 
         .connector-status-dot.down {
@@ -1908,10 +1901,11 @@
             <span id="last-update" class="timestamp">Loading...</span>
         </div>
         <div class="header-right">
-            <a href="/connectors" class="refresh-btn connectors-btn" style="text-decoration: none;" title="Tunnels & Interconnects">
-                <span class="connector-status-dot" id="connector-health-dot"></span>
-                Connectors
-            </a>
+            <div class="status-indicator" id="connector-status-indicator" title="Connector health">
+                <div class="connector-status-dot" id="connector-health-dot"></div>
+                <span>Status</span>
+            </div>
+            <a href="/connectors" class="refresh-btn" style="text-decoration: none;" title="Tunnels & Interconnects">Connectors</a>
             <button class="refresh-btn" onclick="refreshAll()">↻ Refresh</button>
             <button class="refresh-btn" onclick="showPasswordModal()" title="Change Password">⚙</button>
             <a href="/logout" class="refresh-btn" style="text-decoration: none;">Logout</a>
@@ -4116,16 +4110,11 @@
 
                 const dot = document.getElementById('connector-health-dot');
                 if (dot) {
-                    // Remove all status classes
                     dot.classList.remove('healthy', 'degraded', 'down', 'unknown');
-
-                    // Add appropriate class based on overall status
                     if (data.overall_status) {
                         dot.classList.add(data.overall_status);
-                        dot.title = `Connectors: ${data.healthy || 0} healthy, ${data.degraded || 0} degraded, ${data.down || 0} down`;
                     } else {
                         dot.classList.add('unknown');
-                        dot.title = 'Connectors: Status unknown';
                     }
                 }
             } catch (error) {
@@ -4134,7 +4123,6 @@
                 if (dot) {
                     dot.classList.remove('healthy', 'degraded', 'down', 'unknown');
                     dot.classList.add('unknown');
-                    dot.title = 'Connectors: Failed to load status';
                 }
             }
         }

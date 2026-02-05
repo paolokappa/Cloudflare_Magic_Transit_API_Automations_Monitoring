@@ -16,7 +16,7 @@
             --accent-blue: #58a6ff;
             --accent-green: #3fb950;
             --accent-red: #f85149;
-            --accent-yellow: #d29922;
+            --accent-yellow: #ffd000;
             --accent-orange: #f0883e;
             --accent-purple: #a371f7;
             --accent-cyan: #39d5d8;
@@ -243,7 +243,7 @@
         }
 
         .status-degraded {
-            background: rgba(210, 153, 34, 0.2);
+            background: rgba(255, 208, 0, 0.15);
             color: var(--accent-yellow);
         }
 
@@ -1014,7 +1014,7 @@
                     document.getElementById('stat-ipsec-tunnels').textContent = data.ipsec_count || 0;
                     document.getElementById('stat-total-tunnels').textContent = (data.gre_count || 0) + (data.ipsec_count || 0);
 
-                    // Health stats
+                    // Health stats from tunnels
                     let healthy = 0, degraded = 0, down = 0;
                     for (const t of data.tunnels || []) {
                         const state = t.health_status?.toString().toLowerCase();
@@ -1022,9 +1022,7 @@
                         else if (state === '0.5' || state === 'degraded') degraded++;
                         else if (state === '0' || state === 'down') down++;
                     }
-                    document.getElementById('stat-healthy').textContent = healthy;
-                    document.getElementById('stat-degraded').textContent = degraded;
-                    document.getElementById('stat-down').textContent = down;
+                    return { healthy, degraded, down };
                 } else {
                     document.getElementById('tunnels-container').innerHTML = `
                         <div class="error-state">Error: ${data.error || 'Failed to load tunnels'}</div>
@@ -1035,6 +1033,7 @@
                     <div class="error-state">Error: ${error.message}</div>
                 `;
             }
+            return { healthy: 0, degraded: 0, down: 0 };
         }
 
         // Load interconnects
@@ -1046,6 +1045,16 @@
                 if (data.success) {
                     document.getElementById('interconnects-container').innerHTML = renderInterconnectsTable(data.interconnects);
                     document.getElementById('stat-interconnects').textContent = data.total || 0;
+
+                    // Health stats from interconnects
+                    let healthy = 0, degraded = 0, down = 0;
+                    for (const cni of data.interconnects || []) {
+                        const state = cni.status?.toString().toLowerCase();
+                        if (state === '1' || state === 'healthy' || state === 'up' || state === 'active') healthy++;
+                        else if (state === '0.5' || state === 'degraded') degraded++;
+                        else if (state === '0' || state === 'down' || state === 'inactive') down++;
+                    }
+                    return { healthy, degraded, down };
                 } else {
                     document.getElementById('interconnects-container').innerHTML = `
                         <div class="error-state">Error: ${data.error || 'Failed to load interconnects'}</div>
@@ -1056,16 +1065,25 @@
                     <div class="error-state">Error: ${error.message}</div>
                 `;
             }
+            return { healthy: 0, degraded: 0, down: 0 };
         }
 
         // Refresh all data
         async function refreshAll() {
             document.getElementById('last-refresh').textContent = 'Refreshing...';
 
-            await Promise.all([
+            const [tunnelHealth, cniHealth] = await Promise.all([
                 loadTunnels(),
                 loadInterconnects()
             ]);
+
+            // Combine health stats from tunnels + CNI interconnects
+            const totalHealthy = (tunnelHealth?.healthy || 0) + (cniHealth?.healthy || 0);
+            const totalDegraded = (tunnelHealth?.degraded || 0) + (cniHealth?.degraded || 0);
+            const totalDown = (tunnelHealth?.down || 0) + (cniHealth?.down || 0);
+            document.getElementById('stat-healthy').textContent = totalHealthy;
+            document.getElementById('stat-degraded').textContent = totalDegraded;
+            document.getElementById('stat-down').textContent = totalDown;
 
             const now = new Date();
             document.getElementById('last-refresh').textContent = `Updated ${now.toLocaleTimeString('en-GB')}`;
