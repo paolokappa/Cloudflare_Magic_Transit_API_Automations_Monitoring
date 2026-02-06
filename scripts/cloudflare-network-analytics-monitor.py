@@ -31,6 +31,7 @@ Changelog:
 """
 
 import requests
+import happy_eyeballs
 import json
 import sqlite3
 import hashlib

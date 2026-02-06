@@ -7,6 +7,7 @@ Interactive management of MNM rules for Magic Transit On-Demand
 """
 
 import requests
+import happy_eyeballs
 import json
 import sys
 from datetime import datetime
@@ -15,8 +16,8 @@ from datetime import datetime
 # CONFIGURATION
 # ============================================
 ACCOUNT_ID = "YOUR_ACCOUNT_ID"
-AUTH_EMAIL = "YOUR_AUTH_EMAIL"
-AUTH_KEY = "YOUR_GLOBAL_API_KEY"
+AUTH_EMAIL = "YOUR_EMAIL"
+AUTH_KEY = "YOUR_API_KEY"
 
 API_BASE = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/mnm/rules"
 
@@ -36,8 +37,8 @@ GOLINE_PREFIXES = [
 ]
 
 # DDoS Managed Rulesets
-DDOS_L4_RULESET_ID = "YOUR_DDOS_L4_RULESET_ID"  # Cloudflare L3/4 DDoS Ruleset
-DDOS_L4_ROOT_ID = "YOUR_ACCOUNT_ROOT_RULESET_ID"     # Account root ruleset for overrides
+DDOS_L4_RULESET_ID = "3b64149bfa6e4220bbbc2bd6db589552"  # Cloudflare L3/4 DDoS Ruleset
+DDOS_L4_ROOT_ID = "108b5719d12e4169a0ac2e4f499d8bae"     # Account root ruleset for overrides
 RULESETS_API = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/rulesets"
 
 # Action descriptions

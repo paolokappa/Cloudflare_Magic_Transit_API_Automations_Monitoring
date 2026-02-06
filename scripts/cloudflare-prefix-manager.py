@@ -29,6 +29,7 @@ Changelog:
 """
 
 import requests
+import happy_eyeballs
 import json
 import sys
 import argparse

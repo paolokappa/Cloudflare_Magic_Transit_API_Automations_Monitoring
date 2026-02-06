@@ -33,6 +33,7 @@ import ipaddress
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 import requests
+import happy_eyeballs
 from pathlib import Path
 import sys
 
@@ -1066,7 +1067,7 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "service": "Cloudflare MT Webhook Receiver",
-        "version": "1.6.0"
+        "version": "1.9.1"
     }), 200
 
 

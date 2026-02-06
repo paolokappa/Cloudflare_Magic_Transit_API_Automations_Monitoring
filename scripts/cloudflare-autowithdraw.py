@@ -21,6 +21,7 @@ Changelog:
 """
 
 import requests
+import happy_eyeballs
 import json
 import time
 import sys
@@ -32,9 +33,9 @@ from datetime import datetime, timedelta, timezone
 # CONFIGURATION
 # ============================================
 
-ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+ACCOUNT_ID = "YOUR_ACCOUNT_ID"
 AUTH_EMAIL = "YOUR_EMAIL"
-AUTH_KEY = "YOUR_CLOUDFLARE_API_KEY"
+AUTH_KEY = "YOUR_API_KEY"
 
 # Telegram notifications
 TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"

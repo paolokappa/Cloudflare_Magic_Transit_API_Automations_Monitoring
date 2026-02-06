@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
 Cloudflare Magic Transit Dashboard
-Version: 2.0.0
+Version: 2.10.4
 Author: GOLINE SOC
 
 Real-time dashboard for monitoring Cloudflare Magic Transit infrastructure.
 
 Changelog:
+- v2.10.4: Happy Eyeballs (RFC 8305) - IPv6/IPv4 dual-stack fast fallback
+- v2.10.3: Telegram retry mechanism (3 attempts with exponential backoff)
+- v2.10.2: Connector health indicator in header
+- v2.10.1: IPv6 attack events fix, exact timestamps, "My prefixes only" toggle
+- v2.10.0: Network Analytics display modes (auto-collapse, GOLINE only toggle)
+- v2.9.22: DNS timeout graceful handling
 - v1.5.0: Database logging and Telegram notifications for manual actions
 - v1.4.0: Advertise/Withdraw buttons with 15-min constraint enforcement
 - v1.3.0: GOLINE logo in header-right, timestamp color fix, static files
@@ -30,6 +36,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
+import happy_eyeballs
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Generate secure secret key

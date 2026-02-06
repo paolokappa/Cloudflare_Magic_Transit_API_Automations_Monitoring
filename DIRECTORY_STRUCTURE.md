@@ -1,7 +1,7 @@
 # Cloudflare Magic Transit Integration - Directory Structure
 
-**Last Updated**: 2026-01-20
-**Version**: 2.3.3
+**Last Updated**: 2026-02-06
+**Version**: 2.10.4
 
 ---
 

@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.10.3</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.10.4</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.10.3-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.10.4-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -32,7 +32,17 @@
 
 ---
 
-## 🆕 What's New in v2.10.3
+## 🆕 What's New in v2.10.4
+
+### Happy Eyeballs - IPv6/IPv4 Fast Fallback (v2.10.4)
+- **Problem**: IPv6 connectivity broken → every API call waited 30s timeout before IPv4 fallback
+- **Effect**: Dashboard unresponsive, Telegram notifications lost, 20+ stale SYN-SENT connections
+- **Fix**: New `happy_eyeballs.py` module monkey-patches `urllib3` for RFC 8305 Happy Eyeballs
+  - Tries IPv6 first with 2-second timeout, falls back to IPv4 immediately
+  - Zero code changes to existing API calls - just `import happy_eyeballs`
+  - Thread-safe, handles all edge cases (IPv4-only, IPv6-only, DNS failure)
+- **Result**: Cloudflare API 0.8s (was 30s), Telegram 0.2s (was 30s)
+- **Documentation**: [HAPPY_EYEBALLS.md](docs/HAPPY_EYEBALLS.md)
 
 ### Telegram Retry Mechanism (v2.10.3)
 - **Problem**: Intermittent Telegram API timeouts caused missed notifications
