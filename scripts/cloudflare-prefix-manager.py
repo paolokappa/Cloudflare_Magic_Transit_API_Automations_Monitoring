@@ -20,9 +20,10 @@ Examples:
   cloudflare-prefix-manager.py withdraw --all
   cloudflare-prefix-manager.py status 2a02:4460:1::/48
 
-Version: 1.4.0
+Version: 1.4.1
 
 Changelog:
+  v1.4.1 (2026-02-06): Added Telegram retry mechanism (3 attempts with exponential backoff)
   v1.4.0 (2026-01-21): Added database logging for ADVERTISE/WITHDRAW operations.
                        Manual operations now appear in dashboard's Recent Attacks.
 """
@@ -233,19 +234,30 @@ def check_advertise_constraint(modified_at):
     except:
         return True, 0, None
 
-def send_telegram_notification(message):
-    """Send Telegram notification"""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        data = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": message,
-            "parse_mode": "Markdown",
-            "disable_web_page_preview": True
-        }
-        requests.post(url, json=data, timeout=30)
-    except:
-        pass
+def send_telegram_notification(message, max_retries=3):
+    """Send Telegram notification with retry mechanism"""
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    data = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, json=data, timeout=30)
+            if response.ok:
+                return True
+        except:
+            pass
+
+        # Wait before retry (exponential backoff: 5s, 10s)
+        if attempt < max_retries:
+            import time
+            time.sleep(5 * (2 ** (attempt - 1)))
+
+    return False
 
 # ============================================================
 # TELEGRAM NOTIFICATION BUILDERS

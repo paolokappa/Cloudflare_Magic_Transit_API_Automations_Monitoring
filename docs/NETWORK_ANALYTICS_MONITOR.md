@@ -1,7 +1,7 @@
 # Network Analytics Monitor
 
-**Version**: 1.4.0
-**Last Updated**: 2026-02-02
+**Version**: 1.4.1
+**Last Updated**: 2026-02-06
 
 ## Overview
 

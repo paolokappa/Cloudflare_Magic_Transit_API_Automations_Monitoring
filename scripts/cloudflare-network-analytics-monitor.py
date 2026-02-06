@@ -6,10 +6,11 @@ Monitors DDoS mitigation events from Network Analytics and sends Telegram notifi
 This script queries the GraphQL API for dropped traffic events that may not trigger
 standard webhook notifications, ensuring all mitigation events are tracked.
 
-Version: 1.4.0
+Version: 1.4.1
 Author: GOLINE SOC
 
 Changelog:
+  v1.4.1 (2026-02-06): Added Telegram retry mechanism (3 attempts with exponential backoff) - fixes missed notifications due to API timeouts
   v1.4.0 (2026-02-02): "My prefixes only" toggle now controls Telegram notifications - reads preference from dashboard_prefs.json
   v1.3.10 (2026-02-02): Added Cloudflare anycast prefixes (162.159.0.0/16, 172.64.0.0/13, 104.16.0.0/13) to show Magic Transit pass-through traffic
   v1.3.9 (2026-01-22): Changed "no events" log from DEBUG to INFO for better polling visibility
@@ -653,32 +654,43 @@ def query_network_analytics(config: Dict, lookback_minutes: int = LOOKBACK_MINUT
 # TELEGRAM FUNCTIONS
 # ============================================================
 
-def send_telegram_notification(config: Dict, message: str) -> bool:
-    """Send a Telegram notification."""
+def send_telegram_notification(config: Dict, message: str, max_retries: int = 3) -> bool:
+    """Send a Telegram notification with retry mechanism."""
     bot_token = config['telegram']['bot_token']
     chat_id = config['telegram']['chat_id']
 
-    try:
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "Markdown",
-            "disable_web_page_preview": True
-        }
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
 
-        response = requests.post(url, json=payload, timeout=10)
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, json=payload, timeout=30)
 
-        if response.status_code == 200:
-            logger.debug("Telegram notification sent")
-            return True
-        else:
-            logger.warning(f"Telegram error: {response.status_code}")
-            return False
+            if response.status_code == 200:
+                if attempt > 1:
+                    logger.info(f"Telegram notification sent (attempt {attempt}/{max_retries})")
+                else:
+                    logger.debug("Telegram notification sent")
+                return True
+            else:
+                logger.warning(f"Telegram error: {response.status_code} (attempt {attempt}/{max_retries})")
 
-    except Exception as e:
-        logger.error(f"Telegram send failed: {e}")
-        return False
+        except Exception as e:
+            logger.error(f"Telegram send failed: {e} (attempt {attempt}/{max_retries})")
+
+        # Wait before retry (exponential backoff: 5s, 10s, 20s)
+        if attempt < max_retries:
+            wait_time = 5 * (2 ** (attempt - 1))
+            logger.info(f"Retrying Telegram in {wait_time}s...")
+            time.sleep(wait_time)
+
+    logger.error(f"Telegram notification failed after {max_retries} attempts")
+    return False
 
 
 def is_spoofed_ip(ip_str: str) -> bool:

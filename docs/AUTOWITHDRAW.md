@@ -1,8 +1,8 @@
 # Cloudflare Auto-Withdraw Manager
 
 **Script**: `cloudflare-autowithdraw.py`
-**Version**: 3.4
-**Last Updated**: 2026-01-23
+**Version**: 3.5
+**Last Updated**: 2026-02-06
 
 ---
 
@@ -443,6 +443,14 @@ python3 -c "import requests; import sqlite3; print('OK')"
 ---
 
 ## Changelog
+
+### v3.5 (2026-02-06)
+- **Telegram Retry Mechanism**
+  - **Problem**: Telegram API timeouts caused missed withdrawal notifications
+  - **Root Cause**: Intermittent network issues to api.telegram.org (30s timeout with no retry)
+  - **Fix**: Added `max_retries=3` parameter with exponential backoff (5s, 10s, 20s)
+  - **Logging**: Shows attempt number on retry and final failure message
+  - **Result**: Withdrawal notifications now have 3 chances to be delivered
 
 ### v3.4 (2026-01-23)
 - **Peak Attack Statistics in Withdraw Notifications**

@@ -2,8 +2,31 @@
 
 All notable changes to the Cloudflare Magic Transit Integration project.
 
-**Current Version**: 2.10.2
-**Last Updated**: 2026-02-05
+**Current Version**: 2.10.3
+**Last Updated**: 2026-02-06
+
+---
+
+## [2.10.3] - 2026-02-06
+
+### Telegram Retry Mechanism - All Services
+- **Problem**: Intermittent Telegram API timeouts caused missed notifications
+- **Root Cause**: Network connectivity issues to api.telegram.org with no retry logic
+- **Affected Logs**: 4+ missed withdrawal notifications identified (02/02 x3, 06/02 x1)
+
+### Scripts Updated
+| Script | Version | Change |
+|--------|---------|--------|
+| `cloudflare-autowithdraw.py` | v3.5 | Added `max_retries=3` with exponential backoff (5s→10s→20s) |
+| `cloudflare-webhook-receiver.py` | v1.9.1 | Added retry mechanism to `send_telegram_notification()` |
+| `cloudflare-network-analytics-monitor.py` | v1.4.1 | Added retry mechanism with logging |
+| `cloudflare-prefix-manager.py` | v1.4.1 | Added retry mechanism for CLI notifications |
+
+### Technical Details
+- **Retry Strategy**: 3 attempts with exponential backoff (5s, 10s, 20s)
+- **Timeout**: Increased to 30 seconds per attempt
+- **Logging**: Shows attempt number on retry and final failure message
+- **Result**: Notifications now have 3 chances to be delivered
 
 ---
 

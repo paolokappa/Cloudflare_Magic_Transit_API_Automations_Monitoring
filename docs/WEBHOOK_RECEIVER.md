@@ -1,7 +1,7 @@
 # Webhook Receiver per Cloudflare Magic Transit
 
-**Version**: 2.3.0 (script v1.9.0)
-**Last Updated**: 2026-01-23
+**Version**: 2.4.0 (script v1.9.1)
+**Last Updated**: 2026-02-06
 
 ## Panoramica
 
@@ -57,7 +57,7 @@ Cloudflare Notifications ─────────────────► 
 
 ### Autenticazione
 - **Header**: `cf-webhook-auth`
-- **Secret**: `YOUR_WEBHOOK_SECRET`
+- **Secret**: `GolineMT2026!WebhookSecret`
 
 ---
 
@@ -759,7 +759,7 @@ curl -s -X POST http://localhost:8080/test/attack \
 ```bash
 curl -s -X POST https://lg.goline.ch/webhook/cloudflare \
   -H "Content-Type: application/json" \
-  -H "cf-webhook-auth: YOUR_WEBHOOK_SECRET" \
+  -H "cf-webhook-auth: GolineMT2026!WebhookSecret" \
   -d '{
     "name": "Test BGP Hijack",
     "alert_type": "bgp_hijack_notification",
@@ -830,7 +830,7 @@ curl -X POST "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage" \
 3. Configurare:
    - **Name**: `GOLINE Magic Transit Webhook`
    - **URL**: `https://lg.goline.ch/webhook/cloudflare`
-   - **Secret**: `YOUR_WEBHOOK_SECRET`
+   - **Secret**: `GolineMT2026!WebhookSecret`
 
 ### 2. Creare Notification Policies
 

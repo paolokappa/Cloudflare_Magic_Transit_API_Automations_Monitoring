@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cloudflare Magic Transit - Auto Withdraw Manager v3.3
+Cloudflare Magic Transit - Auto Withdraw Manager v3.5
 GOLINE SA - SOC Tools
 
 Automatically withdraws prefixes after DDoS attacks end.
@@ -9,6 +9,9 @@ Uses Cloudflare GraphQL Analytics API to detect active attacks.
 Run as a daemon: python3 cloudflare-autowithdraw.py daemon
 
 Changelog:
+  v3.5 (2026-02-06): Added Telegram retry mechanism (3 attempts with exponential backoff).
+                     Fixes missed notifications due to Telegram API timeouts.
+  v3.4 (2026-01-23): Peak Attack Statistics in Withdraw Notifications.
   v3.3 (2026-01-21): Fixed API endpoint for detecting advertised prefixes.
                      Now uses /bgp/prefixes/{bgp_prefix_id} with on_demand.advertised
                      instead of /bgp/status which always returned False.
@@ -29,9 +32,9 @@ from datetime import datetime, timedelta, timezone
 # CONFIGURATION
 # ============================================
 
-ACCOUNT_ID = "YOUR_ACCOUNT_ID"
-AUTH_EMAIL = "YOUR_AUTH_EMAIL"
-AUTH_KEY = "YOUR_GLOBAL_API_KEY"
+ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+AUTH_EMAIL = "YOUR_EMAIL"
+AUTH_KEY = "YOUR_CLOUDFLARE_API_KEY"
 
 # Telegram notifications
 TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
@@ -232,20 +235,35 @@ def update_prefix_calm_status(prefix_data):
 # TELEGRAM NOTIFICATIONS
 # ============================================
 
-def send_telegram(message):
-    """Send Telegram notification"""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": message,
-            "parse_mode": "HTML"
-        }
-        response = requests.post(url, json=data, timeout=30)
-        if not response.ok:
-            log_error(f"Telegram API error: {response.status_code}")
-    except Exception as e:
-        log_error(f"Telegram error: {e}")
+def send_telegram(message, max_retries=3):
+    """Send Telegram notification with retry mechanism"""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "HTML"
+    }
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, json=data, timeout=30)
+            if response.ok:
+                if attempt > 1:
+                    log(f"  ✅ Telegram notification sent (attempt {attempt}/{max_retries})")
+                return True
+            else:
+                log_error(f"Telegram API error: {response.status_code} (attempt {attempt}/{max_retries})")
+        except Exception as e:
+            log_error(f"Telegram error: {e} (attempt {attempt}/{max_retries})")
+
+        # Wait before retry (exponential backoff: 5s, 10s, 20s)
+        if attempt < max_retries:
+            wait_time = 5 * (2 ** (attempt - 1))
+            log(f"  ⏳ Retrying Telegram in {wait_time}s...")
+            time.sleep(wait_time)
+
+    log_error(f"❌ Telegram notification failed after {max_retries} attempts")
+    return False
 
 # ============================================
 # CLOUDFLARE API FUNCTIONS

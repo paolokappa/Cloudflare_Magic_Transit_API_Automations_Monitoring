@@ -2,7 +2,7 @@
   <img src="https://www.cloudflare.com/img/logo-web-badges/cf-logo-on-white-bg.svg" alt="Cloudflare" width="200"/>
 </p>
 
-<h1 align="center">Cloudflare Magic Transit Integration v2.10.2</h1>
+<h1 align="center">Cloudflare Magic Transit Integration v2.10.3</h1>
 
 <p align="center">
   <strong>Enterprise Magic Transit orchestration platform: Real-time dashboard, intelligent DDoS automation,<br/>custom rules engine, traffic analytics, connectors monitoring, and SOC-ready notifications</strong>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.10.2-blue.svg" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-2.10.3-blue.svg" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.10+-green.svg" alt="Python"/>
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License"/>
   <img src="https://img.shields.io/badge/cloudflare-Magic%20Transit-orange.svg" alt="Cloudflare"/>
@@ -32,17 +32,24 @@
 
 ---
 
-## 🆕 What's New in v2.10.2
+## 🆕 What's New in v2.10.3
+
+### Telegram Retry Mechanism (v2.10.3)
+- **Problem**: Intermittent Telegram API timeouts caused missed notifications
+- **Root Cause**: Network connectivity issues with no retry logic (single attempt, 30s timeout)
+- **Fix**: Added `max_retries=3` with exponential backoff (5s → 10s → 20s)
+- **Scripts Updated**:
+  | Script | Version | Change |
+  |--------|---------|--------|
+  | `cloudflare-autowithdraw.py` | v3.5 | Retry mechanism with logging |
+  | `cloudflare-webhook-receiver.py` | v1.9.1 | Retry mechanism |
+  | `cloudflare-network-analytics-monitor.py` | v1.4.1 | Retry mechanism |
+  | `cloudflare-prefix-manager.py` | v1.4.1 | Retry mechanism |
+- **Result**: Notifications now have 3 chances to be delivered
 
 ### Connector Health Indicator (v2.10.2)
 - **BUG FIX**: `/api/connectors/health-summary` always returned 500 error
-  - Fixed undefined `CF_API_BASE` variable
-  - Fixed wrong Cloudflare API response parsing (`result.gre_tunnels[]` not `result[]`)
-  - Fixed missing CNI interconnect health counting
 - **NEW**: "Status" pill indicator in dashboard header (next to Connectors button)
-  - Green dot: all connectors healthy
-  - Yellow dot: one or more connectors degraded
-  - Red dot: one or more connectors down
 - **FIX**: Connectors page health stats now combine tunnel + CNI interconnect counts
 - **CHANGED**: Unified degraded color to `#ffd000` (bright yellow) across all pages
 

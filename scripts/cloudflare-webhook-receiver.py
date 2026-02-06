@@ -7,8 +7,11 @@ Riceve notifiche real-time da Cloudflare per:
 - Tunnel health checks
 - Auto BGP advertisement
 
-Version: 1.8.0
+Version: 1.9.1
 Changelog:
+- 1.9.1: Added Telegram retry mechanism (3 attempts with exponential backoff)
+         Fixes missed notifications due to Telegram API timeouts
+- 1.9.0: Added database logging for all webhook handlers (L7, tunnel, incident, health, BGP hijack)
 - 1.8.0: Added database logging for auto-advertisement events (fbm_auto_advertisement)
          DDoS L4 attacks now show action_taken='mitigating' instead of 'notified'
 - 1.7.0: Added database logging for MNM alerts (fbm_dosd_attack, fbm_volumetric_attack)
@@ -90,23 +93,39 @@ def verify_webhook_signature(payload, signature):
         return True
     return hmac.compare_digest(signature, WEBHOOK_SECRET)
 
-def send_telegram_notification(message):
-    """Invia notifica Telegram (Markdown format)"""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": message,
-            "parse_mode": "Markdown",
-            "disable_web_page_preview": True
-        }
-        response = requests.post(url, json=data, timeout=30)
-        if response.status_code == 200:
-            logger.info("Telegram notification sent")
-        else:
-            logger.error(f"Telegram error: {response.text}")
-    except Exception as e:
-        logger.error(f"Telegram error: {e}")
+def send_telegram_notification(message, max_retries=3):
+    """Invia notifica Telegram (Markdown format) con retry mechanism"""
+    import time as time_module
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, json=data, timeout=30)
+            if response.status_code == 200:
+                if attempt > 1:
+                    logger.info(f"Telegram notification sent (attempt {attempt}/{max_retries})")
+                else:
+                    logger.info("Telegram notification sent")
+                return True
+            else:
+                logger.error(f"Telegram error: {response.text} (attempt {attempt}/{max_retries})")
+        except Exception as e:
+            logger.error(f"Telegram error: {e} (attempt {attempt}/{max_retries})")
+
+        # Wait before retry (exponential backoff: 5s, 10s, 20s)
+        if attempt < max_retries:
+            wait_time = 5 * (2 ** (attempt - 1))
+            logger.info(f"Retrying Telegram in {wait_time}s...")
+            time_module.sleep(wait_time)
+
+    logger.error(f"Telegram notification failed after {max_retries} attempts")
+    return False
 
 def generate_alert_id():
     """Genera un ID univoco per l'alert"""

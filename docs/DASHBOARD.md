@@ -1,8 +1,8 @@
 # Cloudflare Magic Transit Dashboard
 
-**Version**: 2.10.2
+**Version**: 2.10.3
 **Created**: 2026-01-20
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-02-06
 **Author**: GOLINE SOC
 
 ---

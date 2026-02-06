@@ -4,8 +4,8 @@ CLI tool for complete management of Magic Transit On-Demand BGP prefixes.
 
 **Script**: `/root/Cloudflare_MT_Integration/scripts/cloudflare-prefix-manager.py`
 **Symlink**: `/usr/local/bin/cloudflare-prefix-manager`
-**Version**: 1.4.0
-**Last Updated**: 2026-01-21
+**Version**: 1.4.1
+**Last Updated**: 2026-02-06
 
 ## Table of Contents
 
